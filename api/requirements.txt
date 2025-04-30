@@ -1,1 +1,8 @@
 flask
+requests
+python-dotenv       # Load .env config (e.g., API tokens)
+loguru              # Better logging (optional, but cleaner than default)
+pydantic            # Data validation and settings management
+pytest              # Testing (optional)
+fastapi
+uvicorn

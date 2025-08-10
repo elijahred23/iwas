@@ -4,40 +4,37 @@
 │       └── main.yml
 ├── README.md
 ├── api
-│   ├── .env
 │   ├── .env-template
 │   ├── app
 │   │   ├── __init__.py
-│   │   ├── config
 │   │   ├── integrations
 │   │   │   ├── github_client.py
 │   │   │   ├── jira_client.py
 │   │   │   └── slack_client.py
 │   │   ├── main.py
-│   │   ├── models
-│   │   ├── routes
-│   │   │   └── integration_routes.py
-│   │   └── services
-│   ├── requirements.txt
-│   └── tests
-├── docs
+│   │   └── routes
+│   │       └── integration_routes.py
+│   └── requirements.txt
 ├── frontend
+│   ├── .gitignore
+│   ├── README.md
+│   ├── eslint.config.js
+│   ├── index.html
 │   ├── package.json
 │   ├── public
+│   │   └── vite.svg
 │   ├── src
+│   │   ├── App.css
 │   │   ├── App.jsx
-│   │   ├── components
-│   │   ├── context
-│   │   ├── hooks
-│   │   └── pages
-│   └── tests
+│   │   ├── assets
+│   │   │   └── react.svg
+│   │   ├── index.css
+│   │   └── main.jsx
+│   └── vite.config.js
 ├── generate_tree.py
 ├── infra
 │   ├── docker
 │   │   ├── api.Dockerfile
 │   │   └── frontend.Dockerfile
-│   ├── docker-compose.yml
-│   └── k8s
-├── shared
-├── tests
+│   └── docker-compose.yml
 └── tree_output.txt

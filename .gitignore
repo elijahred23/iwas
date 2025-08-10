@@ -1,0 +1,86 @@
+# --- OS cruft ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+Thumbs.db
+
+# --- Editors/IDEs ---
+.vscode/
+.idea/
+*.code-workspace
+
+# --- Python / Flask ---
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+.venv/
+venv/
+env/
+api/.venv/
+.python-version
+.mypy_cache/
+.pytest_cache/
+.coverage*
+htmlcov/
+.cache/
+.ruff_cache/
+instance/
+*.sqlite3
+*.db
+
+# --- Environment & secrets ---
+.env
+.env.*
+*.env
+*.secret
+.secrets/
+*.pem
+*.key
+
+# --- Logs & dumps ---
+*.log
+logs/
+*.pid
+*.out
+*.err
+dump.rdb
+*.sql
+*.sql.gz
+
+# --- Node/Frontend (if present) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+package-lock.json
+.pnp.*
+.next/
+.nuxt/
+.out/
+out/
+dist/
+build/
+.cache/
+.vite/
+.storybook-out/
+coverage/
+
+# --- Docker / Compose ---
+docker-data/
+.docker/
+docker-compose.override.yml
+
+# --- Misc ---
+*.swp
+*.swo
+*.orig

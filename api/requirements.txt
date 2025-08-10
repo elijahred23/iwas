@@ -1,8 +1,6 @@
-flask
-requests
-python-dotenv       # Load .env config (e.g., API tokens)
-loguru              # Better logging (optional, but cleaner than default)
-pydantic            # Data validation and settings management
-pytest              # Testing (optional)
-fastapi
-uvicorn
+Flask>=3.0
+flask-cors>=4.0
+Flask-JWT-Extended>=4.6
+Flask-SQLAlchemy>=3.1
+PyMySQL>=1.1      # needed when you switch to MySQL
+python-dotenv>=1.0

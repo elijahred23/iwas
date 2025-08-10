@@ -14,7 +14,8 @@ import Layout from './components/Layout.jsx';
 import { AuthProvider, useAuth } from './state/auth.jsx';
 
 function Protected({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <div style={{ padding: 24 }}>Loading…</div>;
   return user ? children : <Navigate to="/login" replace />;
 }
 

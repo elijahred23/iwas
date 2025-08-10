@@ -1,14 +1,27 @@
-version: '3'
+# infra/docker-compose.yml
 services:
-  api:
-    build:
-      context: ../api
-      dockerfile: ../infra/docker/api.Dockerfile
+  # --- existing services (frontend, api) stay as-is ---
+
+  db:
+    image: mysql:8.0
+    container_name: iwas_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "5000:5000"
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: ../infra/docker/frontend.Dockerfile
-    ports:
-      - "3000:3000"
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      # seed files (run only on first init of the volume)
+      - ../database/seed:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER} -p${MYSQL_PASSWORD} || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  db_data:

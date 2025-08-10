@@ -1,8 +1,10 @@
-from flask import Flask
-from app.routes.integration_routes import integration_bp
-
-app = Flask(__name__)
-app.register_blueprint(integration_bp, url_prefix="/api")
+from . import create_app
+app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5050)
+
+@app.after_request
+def add_cors_headers(resp):
+    # same body as above
+    return resp

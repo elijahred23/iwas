@@ -1,22 +1,27 @@
-.
+/Users/elijahproctor/Programs/iwas
 ├── .github
 │   └── workflows
 │       └── main.yml
 ├── README.md
 ├── api
-│   ├── .env-template
 │   ├── app
 │   │   ├── __init__.py
-│   │   ├── integrations
-│   │   │   ├── github_client.py
-│   │   │   ├── jira_client.py
-│   │   │   └── slack_client.py
+│   │   ├── auth
+│   │   │   ├── __init__.py
+│   │   │   └── routes.py
+│   │   ├── config.py
+│   │   ├── extensions.py
 │   │   ├── main.py
-│   │   └── routes
-│   │       └── integration_routes.py
+│   │   ├── models.py
+│   │   └── scripts
+│   │       └── create_user.py
+│   ├── instance
 │   └── requirements.txt
+├── database
+│   └── seed
+│       ├── 01_schema.sql
+│       └── 02_schema.sql
 ├── frontend
-│   ├── .gitignore
 │   ├── README.md
 │   ├── eslint.config.js
 │   ├── index.html
@@ -28,8 +33,27 @@
 │   │   ├── App.jsx
 │   │   ├── assets
 │   │   │   └── react.svg
+│   │   ├── components
+│   │   │   └── Layout.jsx
 │   │   ├── index.css
-│   │   └── main.jsx
+│   │   ├── lib
+│   │   │   └── api.js
+│   │   ├── main.jsx
+│   │   ├── pages
+│   │   │   ├── Analytics.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Integrations.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── Logs.jsx
+│   │   │   ├── Notifications.jsx
+│   │   │   ├── Reports.jsx
+│   │   │   ├── Settings.jsx
+│   │   │   ├── TaskManagement.jsx
+│   │   │   ├── UserManagement.jsx
+│   │   │   ├── WorkflowConfig.jsx
+│   │   │   └── _scaffold.jsx
+│   │   └── state
+│   │       └── auth.jsx
 │   └── vite.config.js
 ├── generate_tree.py
 ├── infra
@@ -37,4 +61,5 @@
 │   │   ├── api.Dockerfile
 │   │   └── frontend.Dockerfile
 │   └── docker-compose.yml
+├── instance
 └── tree_output.txt

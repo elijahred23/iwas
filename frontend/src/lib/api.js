@@ -1,8 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: '/api',        // same-origin via Vite proxy
-  withCredentials: true,  // keep cookies flowing
+  baseURL: '/api',
+  withCredentials: true,
 })
 
 // Optional: auto-handle 401s

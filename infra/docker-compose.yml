@@ -1,27 +1,26 @@
-# infra/docker-compose.yml
-services:
-  # --- existing services (frontend, api) stay as-is ---
+version: "3.9"
 
+services:
   db:
     image: mysql:8.0
-    container_name: iwas_db
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-iwas}
+      MYSQL_USER: ${MYSQL_USER:-iwas}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-iwaspass}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
     ports:
-      - "${MYSQL_PORT}:3306"
+      - "3306:3306"           # optional; expose if you want local DB tools
     volumes:
       - db_data:/var/lib/mysql
-      # seed files (run only on first init of the volume)
-      - ../database/seed:/docker-entrypoint-initdb.d:ro
+      - ./db/sql:/docker-entrypoint-initdb.d:ro   # put 01_schema.sql, 02_seed.sql here
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER} -p${MYSQL_PASSWORD} || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
 volumes:
   db_data:

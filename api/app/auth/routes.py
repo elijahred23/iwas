@@ -8,9 +8,14 @@ from ..models import User
 
 auth_bp = Blueprint("auth", __name__)
 
-@auth_bp.route("/login", methods=["OPTIONS"])
-def login_options():
-    return ("", 204)
+@auth_bp.get("/users")
+def list_users():
+    users = User.query.order_by(User.id.asc()).all()
+    return jsonify({
+        "ok": True,
+        "count": len(users),
+        "users": [u.to_public() for u in users]
+    }), 200
 
 @auth_bp.post("/login")
 def login():
@@ -22,10 +27,15 @@ def login():
         return jsonify({"ok": False, "error": "email and password are required"}), 422
 
     user = User.query.filter_by(email=email).first()
+    print(f"{user=}")
     if not user or not user.check_password(password):
         return jsonify({"ok": False, "error": "Invalid credentials"}), 401
 
-    access_token = create_access_token(identity=user.id, additional_claims={"role": user.role})
+    access_token = create_access_token(
+        identity=str(user.id),              # <-- make it a string
+        additional_claims={"role": user.role}
+    )
+
     resp = jsonify({"ok": True, "user": user.to_public()})
     set_access_cookies(resp, access_token)  # HttpOnly cookie
     return resp, 200
@@ -34,6 +44,7 @@ def login():
 @jwt_required()
 def me():
     uid = get_jwt_identity()
+    print(f"{uid=}")
     user = User.query.get(uid)
     if not user:
         return jsonify({"ok": False, "error": "User not found"}), 404

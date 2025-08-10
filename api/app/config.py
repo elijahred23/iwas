@@ -5,7 +5,7 @@ load_dotenv()  # loads api/.env in dev
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///iwas.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "mysql+pymysql://iwas:devpassword@127.0.0.1:3306/iwas")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # JWT in HttpOnly cookies (SPA-friendly)

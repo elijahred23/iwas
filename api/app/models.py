@@ -116,6 +116,11 @@ class Integration(db.Model):
     def to_public(self):
         return {"id": self.id, "type": self.type, "user_id": self.user_id}
 
+    def _safe_credentials(self) -> dict:
+        try:
+            return json.loads(self.credentials or "{}")
+        except Exception:
+            return {}
     def set_secret(self, payload: dict):
         """Encrypt and store arbitrary JSON credentials."""
         token = _fernet().encrypt(json.dumps(payload).encode()).decode()
@@ -137,3 +142,40 @@ class Integration(db.Model):
     def slack_webhook(self) -> str | None:
         data = self.get_secret() or {}
         return data.get("webhook_url")
+    def set_github(self, api_base: str, token: str, default_repo: str | None = None):
+        """
+        api_base: 'https://api.github.com' (GitHub.com) OR 'https://ghe.yourco.com/api/v3' (GHE)
+        default_repo: 'owner/repo' (optional)
+        """
+        data = self._safe_credentials()
+        data["github"] = {
+            "api_base": (api_base or "https://api.github.com").rstrip("/"),
+            "token": (token or "").strip(),
+            "default_repo": (default_repo or "").strip() or None,
+        }
+        self.credentials = json.dumps(data)
+
+    def get_github(self) -> dict:
+        data = self._safe_credentials()
+        gh = data.get("github") or {}
+        return {
+            "api_base": (gh.get("api_base") or "https://api.github.com").rstrip("/"),
+            "token": gh.get("token") or "",
+            "default_repo": gh.get("default_repo"),
+        }
+
+    def to_public(self):
+        data = self._safe_credentials()
+        # redact GitHub token
+        if "github" in data:
+            gh = dict(data["github"])
+            if "token" in gh:
+                gh["token"] = "****"
+            data["github"] = gh
+        # (keep whatever redaction you already have for slack, etc.)
+        return {
+            "id": self.id,
+            "type": self.type,
+            "user_id": self.user_id,
+            "data": data,
+        }

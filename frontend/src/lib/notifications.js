@@ -1,8 +1,5 @@
 import { api } from './api';
 
 export const NotificationsAPI = {
-  recent: async (params = {}) => {
-    const res = await api.get('/notifications/recent', { params });
-    return res.data;
-  },
+  recent: async (params = {}) => (await api.get('/notifications/recent', { params })).data,
 };

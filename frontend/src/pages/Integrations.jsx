@@ -1,252 +1,251 @@
-import { useState } from 'react';
+// frontend/src/pages/Integrations.jsx
+import { useEffect, useState } from 'react';
 import Section from './_scaffold.jsx';
-import { api } from '../lib/api.js';
+import { IntegrationsAPI } from '../lib/integrations';
 
 export default function Integrations() {
-  // ---------------------
-  // Slack
-  // ---------------------
-  const [slackWebhook, setSlackWebhook] = useState('');
+  // -------- Slack --------
+  const [slackUrl, setSlackUrl] = useState('');
   const [slackMsg, setSlackMsg] = useState('');
-  const [slackBusy, setSlackBusy] = useState(false);
 
   async function saveSlack(e) {
     e.preventDefault();
     setSlackMsg('');
-    setSlackBusy(true);
     try {
-      await api.post('/integrations/slack', { webhook_url: slackWebhook.trim() });
-      setSlackMsg('Slack webhook saved.');
-      setSlackWebhook('');
-    } catch (err) {
-      setSlackMsg(err?.response?.data?.error || 'Save failed');
-    } finally {
-      setSlackBusy(false);
+      await IntegrationsAPI.saveSlack(slackUrl.trim());
+      setSlackMsg('Saved ✅');
+    } catch (e) {
+      setSlackMsg(e?.response?.data?.error || 'Save failed');
     }
   }
-
   async function testSlack() {
     setSlackMsg('');
-    setSlackBusy(true);
     try {
-      const r = await api.post('/integrations/slack/test'); // expects 200/ok from API
-      setSlackMsg(r.data?.ok ? 'Test message sent to Slack.' : 'Not configured.');
-    } catch (err) {
-      setSlackMsg(err?.response?.data?.error || 'Test failed');
-    } finally {
-      setSlackBusy(false);
+      await IntegrationsAPI.testSlack();
+      setSlackMsg('Test sent ✅ Check Slack.');
+    } catch (e) {
+      setSlackMsg(e?.response?.data?.error || 'Test failed');
     }
   }
 
-  async function sendExampleSlack() {
-    setSlackMsg('');
-    setSlackBusy(true);
-    try {
-      const r = await api.post('/integrations/slack/example', {
-        text: 'Hello from IWAS — example notification!',
-      });
-      setSlackMsg(r.data?.ok ? 'Example notification sent.' : 'Send failed.');
-    } catch (err) {
-      setSlackMsg(err?.response?.data?.error || 'Send failed');
-    } finally {
-      setSlackBusy(false);
-    }
-  }
-
-  // ---------------------
-  // GitHub
-  // ---------------------
-  const [apiBase, setApiBase] = useState('https://api.github.com'); // For GHE: https://ghe.company.com/api/v3
-  const [token, setToken] = useState('');
-  const [defaultRepo, setDefaultRepo] = useState(''); // owner/repo (optional)
+  // -------- GitHub --------
+  const [ghBase, setGhBase] = useState('https://api.github.com');
+  const [ghToken, setGhToken] = useState('');
+  const [ghDefaultRepo, setGhDefaultRepo] = useState('');
   const [ghMsg, setGhMsg] = useState('');
-  const [ghBusy, setGhBusy] = useState(false);
   const [repos, setRepos] = useState([]);
-  const [chosen, setChosen] = useState(''); // owner/repo
+  const [newIssueRepo, setNewIssueRepo] = useState('');
+  const [issueTitle, setIssueTitle] = useState('');
+  const [issueDesc, setIssueDesc] = useState('');
 
   async function saveGitHub(e) {
     e.preventDefault();
     setGhMsg('');
-    setGhBusy(true);
     try {
-      await api.post('/integrations/github', {
-        api_base: apiBase.trim(),
-        token: token.trim(),
-        default_repo: defaultRepo.trim() || undefined,
-      });
-      setGhMsg('GitHub settings saved. You can Test or Load repos.');
-      setToken(''); // don’t keep token in memory
-    } catch (err) {
-      setGhMsg(err?.response?.data?.error || 'Save failed');
-    } finally {
-      setGhBusy(false);
+      await IntegrationsAPI.saveGitHub({ api_base: ghBase.trim(), token: ghToken.trim(), default_repo: ghDefaultRepo.trim() || null });
+      setGhMsg('Saved ✅');
+    } catch (e) {
+      setGhMsg(e?.response?.data?.error || 'Save failed');
     }
   }
-
   async function testGitHub() {
     setGhMsg('');
-    setGhBusy(true);
     try {
-      const r = await api.post('/integrations/github/test');
-      if (r.data?.ok) {
-        const u = r.data.user;
-        setGhMsg(`Token OK — ${u.login}${u.name ? ` (${u.name})` : ''}`);
-      } else {
-        setGhMsg('Not configured.');
-      }
-    } catch (err) {
-      setGhMsg(err?.response?.data?.error || 'Test failed');
-    } finally {
-      setGhBusy(false);
+      const r = await IntegrationsAPI.testGitHub();
+      setGhMsg(`OK as ${r.user?.login || r.user?.name || 'user'} ✅`);
+    } catch (e) {
+      setGhMsg(e?.response?.data?.error || 'Test failed');
     }
   }
-
   async function loadRepos() {
     setGhMsg('');
-    setGhBusy(true);
     try {
-      const r = await api.get('/integrations/github/repos');
-      const list = r.data?.items || [];
-      setRepos(list);
-      if (!list.length) setGhMsg('No repos found.');
-    } catch (err) {
-      setGhMsg(err?.response?.data?.error || 'Load failed');
-    } finally {
-      setGhBusy(false);
+      const r = await IntegrationsAPI.listRepos();
+      setRepos(r.items || []);
+      setGhMsg(`Loaded ${r.items?.length || 0} repos ✅`);
+    } catch (e) {
+      setGhMsg(e?.response?.data?.error || 'Failed to load repos');
     }
   }
-
-  async function createTestIssue() {
-    const repoFull = chosen || defaultRepo;
-    if (!repoFull) {
-      setGhMsg('Pick a repo from the list or set Default repo.');
-      return;
-    }
-    const [owner, repo] = repoFull.split('/');
-    if (!owner || !repo) {
-      setGhMsg('Repo must be in the format owner/repo');
-      return;
-    }
-
+  async function createGhIssue(e) {
+    e.preventDefault();
     setGhMsg('');
-    setGhBusy(true);
     try {
-      const r = await api.post(`/integrations/github/repos/${owner}/${repo}/issues`, {
-        title: 'Hello from IWAS',
-        description: 'This issue was created via IWAS GitHub integration.',
-      });
-      if (r.data?.ok) {
-        setGhMsg(`Issue created: ${r.data.issue.title} — ${r.data.issue.html_url}`);
-      } else {
-        setGhMsg('Create issue failed.');
-      }
-    } catch (err) {
-      setGhMsg(err?.response?.data?.error || 'Create issue failed');
-    } finally {
-      setGhBusy(false);
+      const r = await IntegrationsAPI.createGitHubIssue(newIssueRepo, { title: issueTitle, description: issueDesc });
+      setGhMsg(`Issue #${r.issue?.number} created ✅`);
+      setIssueTitle(''); setIssueDesc('');
+    } catch (e) {
+      setGhMsg(e?.response?.data?.error || 'Create failed');
     }
   }
 
-  return (
-    <Section title="Integrations" subtitle="Connect your favorite apps and services">
-      {/* Slack */}
-      <div className="page-card" style={{ padding: 16, borderRadius: 8, marginTop: 16 }}>
-        <h3 style={{ marginTop: 0 }}>Slack</h3>
-        <p style={{ color: '#555' }}>
-          Paste an <strong>Incoming Webhook URL</strong> from your Slack workspace.
-        </p>
+  // -------- Jira --------
+  const [jiraBase, setJiraBase] = useState('https://your-domain.atlassian.net');
+  const [jiraEmail, setJiraEmail] = useState('');
+  const [jiraToken, setJiraToken] = useState('');
+  const [jiraDefaultProject, setJiraDefaultProject] = useState('');
+  const [jiraMsg, setJiraMsg] = useState('');
+  const [jiraProjects, setJiraProjects] = useState([]);
+  const [jiraSearch, setJiraSearch] = useState('');
+  const [jiraIssueProject, setJiraIssueProject] = useState(''); // optional if default is saved
+  const [jiraSummary, setJiraSummary] = useState('');
+  const [jiraDescription, setJiraDescription] = useState('');
+  const [jiraType, setJiraType] = useState('Task');
 
-        <form onSubmit={saveSlack} style={{ display: 'grid', gap: 8, maxWidth: 720 }}>
+  async function saveJira(e) {
+    e.preventDefault();
+    setJiraMsg('');
+    try {
+      await IntegrationsAPI.saveJira({
+        base_url: jiraBase.trim(),
+        email: jiraEmail.trim(),
+        api_token: jiraToken.trim(),
+        default_project: jiraDefaultProject.trim() || null,
+      });
+      setJiraMsg('Saved ✅');
+    } catch (e) {
+      setJiraMsg(e?.response?.data?.error || 'Save failed');
+    }
+  }
+  async function testJira() {
+    setJiraMsg('');
+    try {
+      const r = await IntegrationsAPI.testJira(); // uses saved creds
+      setJiraMsg(`OK ✅ ${r.result?.projects_seen || 0} projects visible`);
+    } catch (e) {
+      setJiraMsg(e?.response?.data?.error || 'Test failed');
+    }
+  }
+  async function loadJiraProjects() {
+    setJiraMsg('');
+    try {
+      const r = await IntegrationsAPI.listJiraProjects(jiraSearch.trim());
+      setJiraProjects(r.items || []);
+      setJiraMsg(`Loaded ${r.items?.length || 0} projects ✅`);
+    } catch (e) {
+      setJiraMsg(e?.response?.data?.error || 'Failed to load projects');
+    }
+  }
+  async function createJiraIssue(e) {
+    e.preventDefault();
+    setJiraMsg('');
+    try {
+      const r = await IntegrationsAPI.createJiraIssue({
+        project_key: jiraIssueProject.trim() || undefined, // if empty, server uses default
+        summary: jiraSummary,
+        description: jiraDescription || undefined,
+        issuetype: jiraType || 'Task',
+      });
+      setJiraMsg(`Issue ${r.issue?.key || r.issue?.id} created ✅`);
+      setJiraSummary('');
+      setJiraDescription('');
+    } catch (e) {
+      setJiraMsg(e?.response?.data?.error || 'Create failed');
+    }
+  }
+
+  // ---------- UI ----------
+  return (
+    <Section title="Integrations" subtitle="Connect Slack, GitHub, and Jira">
+      {/* Slack */}
+      <div className="page-card" style={{ padding:16, borderRadius:8, marginTop:12 }}>
+        <h3 style={{ marginTop:0 }}>Slack</h3>
+        <form onSubmit={saveSlack} style={{ display:'grid', gap:8, maxWidth:640 }}>
           <input
-            type="url"
-            placeholder="Slack webhook URL"
-            value={slackWebhook}
-            onChange={(e) => setSlackWebhook(e.target.value)}
-            required
-            style={{ padding: 8, border: '1px solid #ccc', borderRadius: 6 }}
+            placeholder="Incoming Webhook URL"
+            value={slackUrl}
+            onChange={e=>setSlackUrl(e.target.value)}
+            style={{ padding:8, border:'1px solid #ccc', borderRadius:6 }}
           />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="submit" disabled={slackBusy || !slackWebhook.trim()}>
-              {slackBusy ? 'Saving…' : 'Save Slack'}
-            </button>
-            <button type="button" onClick={testSlack} disabled={slackBusy}>
-              {slackBusy ? 'Testing…' : 'Test ping'}
-            </button>
-            <button type="button" onClick={sendExampleSlack} disabled={slackBusy}>
-              {slackBusy ? 'Sending…' : 'Send example message'}
-            </button>
+          <div style={{ display:'flex', gap:8 }}>
+            <button type="submit">Save</button>
+            <button type="button" onClick={testSlack}>Send test</button>
           </div>
         </form>
-
-        {slackMsg && <div style={{ marginTop: 10 }}>{slackMsg}</div>}
+        {slackMsg && <div style={{ marginTop:8 }}>{slackMsg}</div>}
       </div>
 
       {/* GitHub */}
-      <div className="page-card" style={{ padding: 16, borderRadius: 8, marginTop: 16 }}>
-        <h3 style={{ marginTop: 0 }}>GitHub</h3>
-        <p style={{ color: '#555' }}>
-          Use a <strong>Personal Access Token (PAT)</strong>. For private repos, grant{' '}
-          <code>repo</code> scope (classic) or a fine-grained PAT with <em>Issues: Read and write</em>.
-        </p>
-
-        <form onSubmit={saveGitHub} style={{ display: 'grid', gap: 8, maxWidth: 720 }}>
-          <input
-            type="url"
-            placeholder="API base (GitHub.com default: https://api.github.com)"
-            value={apiBase}
-            onChange={(e) => setApiBase(e.target.value)}
-            required
-            style={{ padding: 8, border: '1px solid #ccc', borderRadius: 6 }}
-          />
-          <input
-            type="password"
-            placeholder="Personal Access Token"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            autoComplete="new-password"
-            required
-            style={{ padding: 8, border: '1px solid #ccc', borderRadius: 6 }}
-          />
-          <input
-            placeholder="Default repo (owner/repo, optional)"
-            value={defaultRepo}
-            onChange={(e) => setDefaultRepo(e.target.value)}
-            style={{ padding: 8, border: '1px solid #ccc', borderRadius: 6 }}
-          />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="submit" disabled={ghBusy || !token.trim()}>
-              {ghBusy ? 'Saving…' : 'Save GitHub'}
-            </button>
-            <button type="button" onClick={testGitHub} disabled={ghBusy}>
-              {ghBusy ? 'Testing…' : 'Test token'}
-            </button>
-            <button type="button" onClick={loadRepos} disabled={ghBusy}>
-              {ghBusy ? 'Loading…' : 'Load my repos'}
-            </button>
+      <div className="page-card" style={{ padding:16, borderRadius:8, marginTop:12 }}>
+        <h3 style={{ marginTop:0 }}>GitHub</h3>
+        <form onSubmit={saveGitHub} style={{ display:'grid', gap:8, maxWidth:640 }}>
+          <input placeholder="API base (optional)" value={ghBase} onChange={e=>setGhBase(e.target.value)} />
+          <input placeholder="Default repo (owner/name) — optional" value={ghDefaultRepo} onChange={e=>setGhDefaultRepo(e.target.value)} />
+          <input type="password" placeholder="Personal access token" value={ghToken} onChange={e=>setGhToken(e.target.value)} />
+          <div style={{ display:'flex', gap:8 }}>
+            <button type="submit">Save</button>
+            <button type="button" onClick={testGitHub}>Test token</button>
+            <button type="button" onClick={loadRepos}>List repos</button>
           </div>
         </form>
 
-        {!!repos.length && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select
-              value={chosen}
-              onChange={(e) => setChosen(e.target.value)}
-              style={{ padding: 8, border: '1px solid #ccc', borderRadius: 6, minWidth: 320 }}
-            >
-              <option value="">— Select a repository —</option>
-              {repos.map((r) => (
-                <option key={r.id} value={r.full_name}>
-                  {r.full_name}{r.private ? ' (private)' : ''}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={createTestIssue} disabled={ghBusy}>
-              {ghBusy ? 'Creating…' : 'Create test issue'}
-            </button>
+        {ghMsg && <div style={{ marginTop:8 }}>{ghMsg}</div>}
+
+        {repos.length > 0 && (
+          <div style={{ marginTop:12 }}>
+            <div style={{ display:'grid', gap:8, gridTemplateColumns:'2fr 1fr' }}>
+              <select value={newIssueRepo} onChange={e=>setNewIssueRepo(e.target.value)}>
+                <option value="">Choose repo</option>
+                {repos.map(r => (
+                  <option key={r.id} value={r.full_name}>{r.full_name}</option>
+                ))}
+              </select>
+              <div />
+            </div>
+            <form onSubmit={createGhIssue} style={{ display:'grid', gap:8, marginTop:8 }}>
+              <input placeholder="Issue title" value={issueTitle} onChange={e=>setIssueTitle(e.target.value)} required />
+              <textarea placeholder="Description (optional)" value={issueDesc} onChange={e=>setIssueDesc(e.target.value)} rows={3} />
+              <button type="submit" disabled={!newIssueRepo || !issueTitle}>Create GitHub issue</button>
+            </form>
           </div>
         )}
+      </div>
 
-        {ghMsg && <div style={{ marginTop: 10 }}>{ghMsg}</div>}
+      {/* Jira */}
+      <div className="page-card" style={{ padding:16, borderRadius:8, marginTop:12 }}>
+        <h3 style={{ marginTop:0 }}>Jira (Cloud)</h3>
+
+        <form onSubmit={saveJira} style={{ display:'grid', gap:8, maxWidth:640 }}>
+          <input placeholder="Base URL (e.g., https://your-domain.atlassian.net)" value={jiraBase} onChange={e=>setJiraBase(e.target.value)} />
+          <input placeholder="Account email" value={jiraEmail} onChange={e=>setJiraEmail(e.target.value)} />
+          <input type="password" placeholder="API token" value={jiraToken} onChange={e=>setJiraToken(e.target.value)} />
+          <input placeholder="Default project key (optional, e.g., ENG)" value={jiraDefaultProject} onChange={e=>setJiraDefaultProject(e.target.value)} />
+          <div style={{ display:'flex', gap:8 }}>
+            <button type="submit">Save</button>
+            <button type="button" onClick={testJira}>Test</button>
+          </div>
+        </form>
+
+        {jiraMsg && <div style={{ marginTop:8 }}>{jiraMsg}</div>}
+
+        <div style={{ marginTop:12 }}>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <input
+              placeholder="Search projects…"
+              value={jiraSearch}
+              onChange={e=>setJiraSearch(e.target.value)}
+              style={{ flex:1 }}
+            />
+            <button type="button" onClick={loadJiraProjects}>Search</button>
+          </div>
+          {jiraProjects.length > 0 && (
+            <div style={{ marginTop:8 }}>
+              <select value={jiraIssueProject} onChange={e=>setJiraIssueProject(e.target.value)}>
+                <option value="">(Use default project)</option>
+                {jiraProjects.map(p => (
+                  <option key={p.id} value={p.key}>{p.key} — {p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={createJiraIssue} style={{ display:'grid', gap:8, marginTop:12, maxWidth:640 }}>
+          <input placeholder="Summary" value={jiraSummary} onChange={e=>setJiraSummary(e.target.value)} required />
+          <textarea placeholder="Description (optional)" value={jiraDescription} onChange={e=>setJiraDescription(e.target.value)} rows={3} />
+          <input placeholder='Issue type (e.g., "Task", "Bug")' value={jiraType} onChange={e=>setJiraType(e.target.value)} />
+          <button type="submit" disabled={!jiraSummary}>Create Jira issue</button>
+        </form>
       </div>
     </Section>
   );

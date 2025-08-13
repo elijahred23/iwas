@@ -5,6 +5,7 @@ from .extensions import db, jwt
 from .auth.routes import auth_bp
 from .workflows.routes import workflows_bp
 from .integrations.routes import integrations_bp
+from .integrations.jira import jira_bp
 
 
 def create_app():
@@ -30,6 +31,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(workflows_bp, url_prefix="/api/workflows")
     app.register_blueprint(integrations_bp, url_prefix="/api/integrations")
+    app.register_blueprint(jira_bp, url_prefix="/api/integrations")
 
     # api/app/__init__.py (inside create_app, before return)
     @app.get("/api/ping")

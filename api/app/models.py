@@ -179,3 +179,32 @@ class Integration(db.Model):
             "user_id": self.user_id,
             "data": data,
         }
+
+    def set_jira_credentials(self, *, domain: str, email: str, api_token: str,
+        default_project: str | None = None,
+        default_issue_type: str | None = None) -> None:
+        """
+        domain: your-domain.atlassian.net  (no protocol, no trailing slash)
+        email:  the Atlassian account email that owns the API token
+        api_token: token created at https://id.atlassian.com/manage-profile/security/api-tokens
+        """
+        try:
+            data = json.loads(self.credentials) if self.credentials else {}
+        except Exception:
+            data = {}
+
+        data["jira"] = {
+            "domain": domain.strip().removeprefix("https://").removeprefix("http://").rstrip("/"),
+            "email": email.strip(),
+            "api_token": api_token.strip(),
+            "default_project": (default_project or "").strip() or None,
+            "default_issue_type": (default_issue_type or "").strip() or None,
+        }
+        self.credentials = json.dumps(data)
+
+    def get_jira_config(self) -> dict:
+        try:
+            data = json.loads(self.credentials) if self.credentials else {}
+        except Exception:
+            data = {}
+        return data.get("jira") or {}

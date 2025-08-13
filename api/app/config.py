@@ -8,12 +8,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "mysql+pymysql://iwas:devpassword@127.0.0.1:3306/iwas")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # JWT in HttpOnly cookies (SPA-friendly)
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret")
     JWT_TOKEN_LOCATION = ["cookies"]
-    JWT_COOKIE_SECURE = False        # True in prod (https)
-    JWT_COOKIE_SAMESITE = "Lax"      # 'None' if cross-site with https
-    JWT_COOKIE_CSRF_PROTECT = False  # keep False in dev; enable in prod with X-CSRF headers
+    JWT_COOKIE_SECURE = False           # True in prod behind HTTPS
+    JWT_COOKIE_SAMESITE = "Lax"
+    JWT_COOKIE_CSRF_PROTECT = True
+    JWT_ACCESS_TOKEN_EXPIRES = 900      # 15 min
+    JWT_REFRESH_TOKEN_EXPIRES = 2592000 # 30 days
 
     # CORS
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173")

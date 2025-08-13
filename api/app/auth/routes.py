@@ -1,21 +1,44 @@
+# api/app/auth/routes.py
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
-    create_access_token, set_access_cookies, unset_jwt_cookies,
-    jwt_required, get_jwt_identity
+    create_access_token,
+    create_refresh_token,
+    set_access_cookies,
+    set_refresh_cookies,
+    unset_jwt_cookies,
+    jwt_required,
+    get_jwt_identity,
 )
+from sqlalchemy import func
 from ..extensions import db
 from ..models import User
 
 auth_bp = Blueprint("auth", __name__)
 
-@auth_bp.get("/users")
-def list_users():
-    users = User.query.order_by(User.id.asc()).all()
-    return jsonify({
-        "ok": True,
-        "count": len(users),
-        "users": [u.to_public() for u in users]
-    }), 200
+
+# ---- helpers ---------------------------------------------------------------
+
+def _json_error(msg: str, code: int):
+    return jsonify({"ok": False, "error": msg}), code
+
+
+def _current_user():
+    """Resolve the current user from JWT 'sub' (stored as string)."""
+    uid = get_jwt_identity()
+    try:
+        uid_int = int(uid)
+    except (TypeError, ValueError):
+        return None
+    return User.query.get(uid_int)
+
+
+# ---- routes ----------------------------------------------------------------
+
+@auth_bp.route("/login", methods=["OPTIONS"])
+def login_options():
+    # For CORS preflight convenience; CORS middleware will add headers.
+    return ("", 204)
+
 
 @auth_bp.post("/login")
 def login():
@@ -24,34 +47,64 @@ def login():
     password = data.get("password") or ""
 
     if not email or not password:
-        return jsonify({"ok": False, "error": "email and password are required"}), 422
+        return _json_error("email and password are required", 422)
 
-    user = User.query.filter_by(email=email).first()
-    print(f"{user=}")
+    # Case-insensitive match
+    user = User.query.filter(func.lower(User.email) == email).first()
+
     if not user or not user.check_password(password):
-        return jsonify({"ok": False, "error": "Invalid credentials"}), 401
+        return _json_error("Invalid credentials", 401)
 
-    access_token = create_access_token(
-        identity=str(user.id),              # <-- make it a string
-        additional_claims={"role": user.role}
-    )
+    # NOTE: identity must be a string to satisfy JWT "sub" requirements
+    access = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
+    refresh = create_refresh_token(identity=str(user.id))
 
     resp = jsonify({"ok": True, "user": user.to_public()})
-    set_access_cookies(resp, access_token)  # HttpOnly cookie
+    set_access_cookies(resp, access)     # sets HttpOnly access cookie (+ csrf cookie if enabled)
+    set_refresh_cookies(resp, refresh)   # sets HttpOnly refresh cookie (+ csrf cookie if enabled)
     return resp, 200
+
+
+@auth_bp.post("/refresh")
+@jwt_required(refresh=True)
+def refresh():
+    user = _current_user()
+    if not user:
+        return _json_error("Unauthorized", 401)
+
+    new_access = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
+    resp = jsonify({"ok": True})
+    set_access_cookies(resp, new_access)
+    return resp, 200
+
 
 @auth_bp.get("/me")
 @jwt_required()
 def me():
-    uid = get_jwt_identity()
-    print(f"{uid=}")
-    user = User.query.get(uid)
+    user = _current_user()
     if not user:
-        return jsonify({"ok": False, "error": "User not found"}), 404
-    return jsonify({"ok": True, "user": user.to_public()})
+        return _json_error("User not found", 404)
+    return jsonify({"ok": True, "user": user.to_public()}), 200
+
 
 @auth_bp.post("/logout")
 def logout():
+    # Clears both access and refresh cookies
     resp = jsonify({"ok": True})
     unset_jwt_cookies(resp)
     return resp, 200
+
+
+@auth_bp.get("/users")
+@jwt_required()
+def list_users():
+    user = _current_user()
+    if not user or user.role != "admin":
+        return _json_error("Forbidden", 403)
+
+    users = User.query.order_by(User.id.asc()).all()
+    return jsonify({
+        "ok": True,
+        "count": len(users),
+        "users": [u.to_public() for u in users]
+    }), 200

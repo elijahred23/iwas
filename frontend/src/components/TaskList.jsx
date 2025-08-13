@@ -68,7 +68,7 @@ export default function TaskList({ workflow }) {
         <input placeholder="Task name" value={name} onChange={e=>setName(e.target.value)} required />
         <input placeholder="Assigned to" value={assignedTo} onChange={e=>setAssignedTo(e.target.value)} />
         <input placeholder="Due date (YYYY-MM-DD)" value={dueDate} onChange={e=>setDueDate(e.target.value)} />
-        <button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add Task'}</button>
+        <button className='btn' type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add Task'}</button>
       </form>
 
       {err && <div style={{ color:'crimson', marginTop:8 }}>{err}</div>}

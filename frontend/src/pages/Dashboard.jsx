@@ -115,7 +115,7 @@ export default function Dashboard() {
   return (
     <Section title="Dashboard" subtitle="Overview at a glance">
       <div className="page-card" style={{ padding: 16, borderRadius: 10, marginBottom: 12, display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
-        <button onClick={loadAll}>Refresh</button>
+        <button type="button" className="btn outline btn-sm" onClick={loadAll}>Refresh</button>
         <label style={{ display:'flex', alignItems:'center', gap:8 }}>
           <input type="checkbox" checked={live} onChange={e => setLive(e.target.checked)} />
           Auto-refresh every 60s

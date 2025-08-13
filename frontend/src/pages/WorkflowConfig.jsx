@@ -92,10 +92,10 @@ export default function WorkflowConfig() {
                     #{w.id} • owner {w.user_id} • {w.created_at?.slice(0,10)}
                   </div>
                 </div>
-                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                  <Link to={`/workflow/${w.id}`}>Open</Link>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <button onClick={() => remove(w.id)}>Delete</button>
                 </div>
+                <Link to={`/workflow/${w.id}`} style={{ marginLeft: 16 }}>Open</Link>
               </li>
             ))}
           </ul>

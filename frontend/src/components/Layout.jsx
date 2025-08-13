@@ -36,7 +36,7 @@ export default function Layout() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <header className="header">
           <span>Logged in as {user?.name}</span>
-          <button onClick={() => { logout(); navigate('/login'); }}>Log out</button>
+          <button type="button" className="btn outline danger btn-sm" onClick={() => { logout(); navigate('/login'); }}>Log out</button>
         </header>
         <main className="main">
           <Outlet />

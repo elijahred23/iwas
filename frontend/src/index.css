@@ -1,55 +1,375 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* === Design tokens ======================================================= */
+:root {
+  /* Colors - light */
+  --bg:            #f7f8fa;
+  --panel:         #ffffff;
+  --text:          #1f2937;
+  --muted:         #6b7280;
+  --border:        #e5e7eb;
+  --shadow:        0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+
+  --primary:       #2563eb;   /* blue-600 */
+  --primary-600:   #1d4ed8;
+  --primary-700:   #1e40af;
+  --primary-contrast: #ffffff;
+
+  --success:       #16a34a;
+  --warning:       #d97706;
+  --danger:        #dc2626;
+
+  --ring:          rgba(37, 99, 235, .35);
+
+  /* Radii / spacing / fonts */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 12px;
+
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+               "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
+
+/* Dark mode tokens */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:      #0f172a;       /* slate-900 */
+    --panel:   #0b1223;       /* slightly raised panel */
+    --text:    #e5e7eb;
+    --muted:   #9aa3b2;
+    --border:  #1f2a44;
+    --shadow:  0 1px 2px rgba(0,0,0,.6), 0 10px 30px rgba(0,0,0,.4);
+
+    --primary: #3b82f6;
+    --primary-600: #2563eb;
+    --primary-700: #1d4ed8;
+
+    --ring:    rgba(59,130,246,.45);
+  }
+}
+
+/* === Resets & base ====================================================== */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
 
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f8f9fa;
-  color: #222;
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  text-decoration: none;
-  color: inherit;
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+
+/* Smooth but respectful motion */
+* { transition: background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease; }
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
 }
 
+/* === Layout (sidebar + content) ======================================== */
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: sticky; top: 0; z-index: 40; }
+}
+
+/* === Sidebar ============================================================ */
 .sidebar {
-  width: 240px;
-  background-color: #ffffff;
-  border-right: 1px solid #ddd;
-  padding: 1rem;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: var(--space-5) var(--space-4);
+}
+
+.sidebar .logo {
+  font-weight: 800;
+  letter-spacing: .2px;
+  margin-bottom: var(--space-5);
 }
 
 .sidebar .nav-link {
-  display: block;
-  padding: 0.5rem;
-  margin-bottom: 0.3rem;
-  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem .6rem;
+  margin-bottom: .25rem;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  border: 1px solid transparent;
+}
+
+.sidebar .nav-link:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
 .sidebar .nav-link.active {
-  background-color: #007bff;
-  color: white;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: var(--primary-700);
 }
 
+/* Optional small section titles */
+.sidebar .nav-section {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-2);
+  font-size: .75rem;
+  letter-spacing: .04em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* === Header ============================================================= */
 .header {
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background-color: #ffffff;
+  justify-content: space-between;
+  padding: .8rem 1rem;
+  box-shadow: var(--shadow);
 }
 
-.main {
-  padding: 1rem;
+/* === Main area ========================================================== */
+.main { padding: var(--space-5); }
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
+/* === Cards / panels ===================================================== */
 .page-card {
-  background: #fff;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #ddd;
+  background: var(--panel);
+  padding: var(--space-5);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.page-card h1, .page-card h2, .page-card h3 {
+  margin-top: 0;
+  margin-bottom: .35rem;
+}
+.page-card p { color: var(--muted); }
+
+/* Quick card grid (e.g., Dashboard tiles) */
+.card-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+@media (min-width: 700px) {
+  .card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.tile {
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.tile .label { color: var(--muted); font-size: .85rem; }
+.tile .value { font-size: 1.6rem; font-weight: 800; margin-top: .25rem; }
+
+/* ==== Better buttons ==================================================== */
+/* generic variables per button instance */
+.btn {
+  --btn: var(--primary);
+  --btn-contrast: var(--primary-contrast);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+
+  padding: .6rem .95rem;
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--btn) 80%, black);
+  color: var(--btn-contrast);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--btn) 14%, white),
+      color-mix(in srgb, var(--btn) 0%, black) 85%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.25) inset,
+    0 6px 14px rgba(0,0,0,.10);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform .06s ease,
+    box-shadow .15s ease,
+    filter .15s ease,
+    background-color .15s ease,
+    border-color .15s ease;
+}
+
+.btn:hover {
+  filter: brightness(1.03);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.25) inset,
+    0 8px 18px rgba(0,0,0,.14);
+}
+
+.btn:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 0 0 rgba(0,0,0,0),
+    0 3px 10px rgba(0,0,0,.12);
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+  filter: grayscale(.1);
+}
+
+/* focus ring (keeps your global ring token) */
+.btn:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow:
+    0 0 0 3px var(--ring),
+    0 6px 14px rgba(0,0,0,.10);
+}
+
+/* === Variants (just set --btn / --btn-contrast) ======================== */
+.btn.success { --btn: var(--success); --btn-contrast: #fff; }
+.btn.danger  { --btn: var(--danger);  --btn-contrast: #fff; }
+.btn.warning { --btn: var(--warning); --btn-contrast: #111; }
+
+/* Outline: keeps depth, uses text-colored fill on hover */
+.btn.outline {
+  background: transparent;
+  color: var(--btn);
+  border-color: color-mix(in srgb, var(--btn) 60%, var(--border));
+  box-shadow: none;
+}
+.btn.outline:hover {
+  background: color-mix(in srgb, var(--btn) 10%, transparent);
+}
+
+/* Ghost: very subtle */
+.btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: none;
+}
+.btn.ghost:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+/* === Sizes ============================================================== */
+.btn-sm { padding: .45rem .7rem; font-size: .9rem; border-radius: var(--r-sm); }
+.btn-lg { padding: .8rem 1.1rem; font-size: 1.05rem; border-radius: var(--r-lg); }
+.btn-block { width: 100%; }
+
+/* Icon button (square) */
+.btn-icon {
+  width: 2.25rem; height: 2.25rem; padding: 0;
+  display: inline-grid; place-items: center;
+  border-radius: 10px;
+}
+
+/* === Loading state ====================================================== */
+.btn.is-loading { color: transparent; pointer-events: none; }
+.btn.is-loading .spinner {
+  position: absolute;
+  width: 1.1em; height: 1.1em;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--btn-contrast) 35%, transparent);
+  border-top-color: var(--btn-contrast);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* === Forms ============================================================== */
+.input, .textarea, .select, input[type="text"], input[type="email"], input[type="password"], input[type="date"], textarea, select {
+  width: 100%;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: .6rem .7rem;
+}
+
+.input::placeholder, .textarea::placeholder, textarea::placeholder, input::placeholder {
+  color: color-mix(in srgb, var(--muted) 85%, transparent);
+}
+
+/* Inline form rows */
+.form-row {
+  display: grid;
+  gap: var(--space-3);
+}
+@media (min-width: 720px) {
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* === Tables (simple) ==================================================== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.table th, .table td {
+  padding: .65rem .8rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.table thead th {
+  background: color-mix(in srgb, var(--text) 5%, var(--panel));
+  color: var(--muted);
+  font-weight: 700;
+  font-size: .9rem;
+}
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+/* === Helpers ============================================================ */
+.muted { color: var(--muted); }
+.spacer { height: var(--space-5); }
+.badge {
+  display: inline-block;
+  padding: .2rem .45rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--text) 5%, var(--panel));
+}
+
+/* Optional: nicer scrollbar on desktop */
+@media (pointer: fine) {
+  *::-webkit-scrollbar { height: 10px; width: 10px; }
+  *::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text) 10%, transparent);
+    border-radius: 10px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--text) 18%, transparent);
+  }
 }

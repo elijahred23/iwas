@@ -33,21 +33,20 @@ export default function Notifications() {
   const [err, setErr] = useState('');
   const [readSet, setReadSet] = useReadSet();
   const [live, setLive] = useState(true);
-  const [limit, setLimit] = useState(50);
+  const [pageSize, setPageSize] = useState(50);   // acts as fetch limit + page size
+  const [page, setPage] = useState(1);            // client-side page
   const timer = useRef(null);
 
   const newestId = useMemo(() => (items[0]?.id || 0), [items]);
 
   async function load(opts = {}) {
-    setErr('');
+    setErr(''); setBusy(true);
     try {
-      const data = await NotificationsAPI.recent({ limit, ...opts });
+      const data = await NotificationsAPI.recent({ limit: pageSize, ...opts });
       if (opts.after_id) {
-        // incremental prepend (newest first from API)
         setItems(prev => {
           const incoming = data.items || [];
           if (!incoming.length) return prev;
-          // Avoid duplicates
           const have = new Set(prev.map(i => i.id));
           const dedup = incoming.filter(i => !have.has(i.id));
           return [...dedup, ...prev];
@@ -57,14 +56,19 @@ export default function Notifications() {
       }
     } catch (e) {
       setErr(e?.response?.data?.error || 'Failed to load notifications');
+    } finally {
+      setBusy(false);
     }
   }
 
+  // Initial load + when pageSize changes
   useEffect(() => {
-    setItems([]); // reset when limit changes
+    setItems([]);
+    setPage(1);
     load();
-  }, [limit]);
+  }, [pageSize]);
 
+  // Live polling (prepend new items if any)
   useEffect(() => {
     if (!live) {
       if (timer.current) { clearInterval(timer.current); timer.current = null; }
@@ -75,7 +79,20 @@ export default function Notifications() {
       else load();
     }, 8000);
     return () => { if (timer.current) clearInterval(timer.current); };
-  }, [live, newestId, limit]);
+  }, [live, newestId, pageSize]);
+
+  // Client-side pagination
+  const total = items.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [totalPages, page]);
+
+  const start = (page - 1) * pageSize;
+  const pageItems = useMemo(
+    () => items.slice(start, start + pageSize),
+    [items, start, pageSize]
+  );
 
   function markAllRead() {
     const s = new Set(readSet);
@@ -89,25 +106,31 @@ export default function Notifications() {
   }
 
   const unreadCount = items.filter(i => !readSet.has(i.id)).length;
+  const showingFrom = total === 0 ? 0 : start + 1;
+  const showingTo = Math.min(start + pageSize, total);
 
   return (
     <Section title="Notifications" subtitle="Recent activity from your workflows and tasks">
       <div className="page-card" style={{ padding: 16, borderRadius: 8 }}>
         <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
-          <button onClick={() => load()} disabled={busy}>Refresh</button>
+          <button onClick={() => load()} disabled={busy}>{busy ? 'Refreshing…' : 'Refresh'}</button>
           <label style={{ display:'flex', alignItems:'center', gap:6 }}>
             <input type="checkbox" checked={live} onChange={e => setLive(e.target.checked)} />
             Live (8s)
           </label>
           <label>
             Show:&nbsp;
-            <select value={limit} onChange={e => setLimit(Number(e.target.value))}>
+            <select
+              value={pageSize}
+              onChange={e => { setPageSize(Number(e.target.value)); }}
+            >
               <option value={25}>25</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
               <option value={200}>200</option>
             </select>
           </label>
+
           <div style={{ marginLeft:'auto', fontSize:12, opacity:0.7 }}>
             {unreadCount} unread
           </div>
@@ -116,18 +139,35 @@ export default function Notifications() {
 
         {err && <div style={{ color:'crimson', marginTop:10 }}>{err}</div>}
 
-        <div style={{ marginTop:12, border:'1px solid #eee', borderRadius:8, overflow:'hidden' }}>
+        {/* Meta + pagination header */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:12, marginBottom:8 }}>
+          <div style={{ opacity:0.8 }}>
+            {busy ? 'Loading…' : (total === 0 ? 'No activity yet' : `Showing ${showingFrom}–${showingTo} of ${total}`)}
+          </div>
+          {total > 0 && (
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto' }}>
+              <button onClick={() => setPage(1)} disabled={page <= 1}>« First</button>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>‹ Prev</button>
+              <div style={{ opacity:0.8 }}>Page {page} of {totalPages}</div>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next ›</button>
+              <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>Last »</button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ border:'1px solid #eee', borderRadius:8, overflow:'hidden' }}>
           <div style={{ display:'grid', gridTemplateColumns:'80px 1fr 220px 160px', fontWeight:600, background:'#fafafa', padding:'10px 12px' }}>
             <div>ID</div>
             <div>Event</div>
             <div>Task / Workflow</div>
             <div>When</div>
           </div>
-          {items.length === 0 ? (
-            <div style={{ padding:14, opacity:0.7 }}>{busy ? 'Loading…' : 'No activity yet'}</div>
+
+          {pageItems.length === 0 ? (
+            <div style={{ padding:14, opacity:0.7 }}>{busy ? 'Loading…' : 'No activity in this page'}</div>
           ) : (
             <ul style={{ listStyle:'none', margin:0, padding:0 }}>
-              {items.map(n => {
+              {pageItems.map(n => {
                 const unread = !readSet.has(n.id);
                 return (
                   <li key={n.id} style={{
@@ -164,6 +204,17 @@ export default function Notifications() {
             </ul>
           )}
         </div>
+
+        {/* Pagination footer (duplicate for convenience) */}
+        {total > 0 && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:12 }}>
+            <button onClick={() => setPage(1)} disabled={page <= 1}>« First</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>‹ Prev</button>
+            <div style={{ opacity:0.8 }}>Page {page} of {totalPages}</div>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next ›</button>
+            <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>Last »</button>
+          </div>
+        )}
       </div>
     </Section>
   );

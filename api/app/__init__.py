@@ -9,6 +9,7 @@ from .integrations.jira import jira_bp
 from .analytics.routes import analytics_bp
 from .logs.routes import logs_bp
 from .tasks.routes import tasks_bp
+from .notifications.routes import notifications_bp  
 
 
 def create_app():
@@ -38,6 +39,7 @@ def create_app():
     app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
     app.register_blueprint(logs_bp, url_prefix="/api/logs")
     app.register_blueprint(tasks_bp, url_prefix="/api/tasks")
+    app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
 
     # api/app/__init__.py (inside create_app, before return)
     @app.get("/api/ping")

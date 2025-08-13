@@ -13,14 +13,13 @@
 │   │   ├── extensions.py
 │   │   ├── main.py
 │   │   ├── models.py
-│   │   └── scripts
-│   │       └── create_user.py
+│   │   ├── scripts
+│   │   │   └── create_user.py
+│   │   └── workflows
+│   │       └── routes.py
 │   ├── instance
 │   └── requirements.txt
 ├── database
-│   └── seed
-│       ├── 01_schema.sql
-│       └── 02_schema.sql
 ├── frontend
 │   ├── README.md
 │   ├── eslint.config.js
@@ -59,6 +58,8 @@
 ├── infra
 │   ├── db
 │   │   └── sql
+│   │       ├── 01_schema.sql
+│   │       └── 02_schema.sql
 │   ├── docker
 │   │   ├── api.Dockerfile
 │   │   └── frontend.Dockerfile

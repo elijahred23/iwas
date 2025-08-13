@@ -1,0 +1,107 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import Section from './_scaffold.jsx';
+import { TasksAPI } from '../lib/tasks';
+import { WorkflowsAPI } from '../lib/workflows';
+
+export default function WorkflowDetail() {
+  const { id } = useParams();
+  const [wf, setWf] = useState(null);
+  const [items, setItems] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [name, setName] = useState('');
+  const [assigned, setAssigned] = useState('');
+  const [due, setDue] = useState('');
+
+  async function load() {
+    setBusy(true); setErr('');
+    try {
+      const [wfResp, tResp] = await Promise.all([
+        WorkflowsAPI.get(id),
+        TasksAPI.list(id),
+      ]);
+      setWf(wfResp.item);
+      setItems(tResp.items || []);
+    } catch (e) {
+      setErr(e?.response?.data?.error || 'Failed to load');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [id]);
+
+  async function addTask(e) {
+    e.preventDefault();
+    setErr('');
+    try {
+      const { item } = await TasksAPI.create(id, {
+        name,
+        assigned_to: assigned || undefined,
+        due_date: due || undefined,
+      });
+      setItems(prev => [item, ...prev]);
+      setName(''); setAssigned(''); setDue('');
+    } catch (e) {
+      setErr(e?.response?.data?.error || 'Failed to create task');
+    }
+  }
+
+  async function toggleStatus(t) {
+    const next = t.status === 'done' ? 'pending' : 'done';
+    try {
+      const { item } = await TasksAPI.update(t.id, { status: next });
+      setItems(prev => prev.map(x => x.id === t.id ? item : x));
+    } catch (e) {
+      alert(e?.response?.data?.error || 'Update failed');
+    }
+  }
+
+  async function removeTask(id) {
+    if (!confirm('Delete this task?')) return;
+    try {
+      await TasksAPI.remove(id);
+      setItems(prev => prev.filter(x => x.id !== id));
+    } catch (e) {
+      alert(e?.response?.data?.error || 'Delete failed');
+    }
+  }
+
+  return (
+    <Section title={wf ? `Workflow: ${wf.name}` : 'Workflow'} subtitle={<Link to="/workflows">← Back</Link>}>
+      {err && <div style={{ color:'crimson', marginBottom:12 }}>{err}</div>}
+
+      <form onSubmit={addTask} style={{ display:'grid', gap:8, maxWidth:520 }}>
+        <input placeholder="Task name" value={name} onChange={e=>setName(e.target.value)} required />
+        <input placeholder="Assigned to" value={assigned} onChange={e=>setAssigned(e.target.value)} />
+        <input type="date" value={due} onChange={e=>setDue(e.target.value)} />
+        <button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Add task'}</button>
+      </form>
+
+      <div style={{ marginTop:16 }}>
+        <h3 style={{ margin:0 }}>Tasks</h3>
+        {items.length === 0 ? (
+          <div style={{ opacity:0.7 }}>{busy ? 'Loading…' : 'No tasks yet.'}</div>
+        ) : (
+          <ul style={{ listStyle:'none', padding:0, margin:0 }}>
+            {items.map(t => (
+              <li key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid #eee' }}>
+                <div>
+                  <div style={{ fontWeight:600, textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>{t.name}</div>
+                  <div style={{ fontSize:12, opacity:0.7 }}>
+                    #{t.id} • {t.status} {t.assigned_to ? `• ${t.assigned_to}` : ''} {t.due_date ? `• due ${t.due_date}` : ''}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => toggleStatus(t)}>{t.status === 'done' ? 'Mark pending' : 'Mark done'}</button>
+                  <button onClick={() => removeTask(t.id)}>Delete</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Section>
+  );
+}

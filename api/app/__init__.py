@@ -3,6 +3,8 @@ from flask_cors import CORS
 from .config import Config
 from .extensions import db, jwt
 from .auth.routes import auth_bp
+from .workflows.routes import workflows_bp
+
 
 def create_app():
     app = Flask(__name__)
@@ -25,6 +27,7 @@ def create_app():
 
     # blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(workflows_bp, url_prefix="/api/workflows")
 
     # api/app/__init__.py (inside create_app, before return)
     @app.get("/api/ping")

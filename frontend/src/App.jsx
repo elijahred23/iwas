@@ -12,6 +12,7 @@ import Analytics from './pages/Analytics.jsx';
 import Logs from './pages/Logs.jsx';
 import Layout from './components/Layout.jsx';
 import { AuthProvider, useAuth } from './state/auth.jsx';
+import WorkflowDetail from './pages/WorkflowDetail.jsx';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="settings/users" element={<UserManagement />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="logs" element={<Logs />} />
+          <Route path="workflow/:id" element={<WorkflowDetail />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

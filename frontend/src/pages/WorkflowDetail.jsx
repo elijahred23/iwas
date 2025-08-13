@@ -12,7 +12,7 @@ export default function WorkflowDetail() {
   const [err, setErr] = useState('');
   const [name, setName] = useState('');
   const [assigned, setAssigned] = useState('');
-  const [due, setDue] = useState('');
+  const [due, setDue] = useState(''); // YYYY-MM-DD
 
   async function load() {
     setBusy(true); setErr('');
@@ -58,19 +58,31 @@ export default function WorkflowDetail() {
     }
   }
 
-  async function removeTask(id) {
+  async function removeTask(taskId) {
     if (!confirm('Delete this task?')) return;
     try {
-      await TasksAPI.remove(id);
-      setItems(prev => prev.filter(x => x.id !== id));
+      await TasksAPI.remove(taskId);
+      setItems(prev => prev.filter(x => x.id !== taskId));
     } catch (e) {
       alert(e?.response?.data?.error || 'Delete failed');
     }
   }
 
   return (
-    <Section title={wf ? `Workflow: ${wf.name}` : 'Workflow'} subtitle={<Link to="/workflows">← Back</Link>}>
+    <Section
+      title={wf ? `Workflow: ${wf.name}` : 'Workflow'}
+      subtitle={<Link to="/workflows">← Back</Link>}
+    >
       {err && <div style={{ color:'crimson', marginBottom:12 }}>{err}</div>}
+
+      {wf && (
+        <div className="page-card" style={{ padding:16, borderRadius:8, marginBottom:16 }}>
+          <div style={{ fontSize:14, opacity:0.8 }}>
+            #{wf.id} • owner {wf.user_id} • {wf.created_at?.slice(0,10)}
+          </div>
+          {wf.description && <p style={{ marginTop:8 }}>{wf.description}</p>}
+        </div>
+      )}
 
       <form onSubmit={addTask} style={{ display:'grid', gap:8, maxWidth:520 }}>
         <input placeholder="Task name" value={name} onChange={e=>setName(e.target.value)} required />
@@ -88,7 +100,9 @@ export default function WorkflowDetail() {
             {items.map(t => (
               <li key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid #eee' }}>
                 <div>
-                  <div style={{ fontWeight:600, textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>{t.name}</div>
+                  <div style={{ fontWeight:600, textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>
+                    {t.name}
+                  </div>
                   <div style={{ fontSize:12, opacity:0.7 }}>
                     #{t.id} • {t.status} {t.assigned_to ? `• ${t.assigned_to}` : ''} {t.due_date ? `• due ${t.due_date}` : ''}
                   </div>

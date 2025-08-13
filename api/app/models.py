@@ -47,16 +47,17 @@ class Workflow(db.Model):
 class Task(db.Model):
     __tablename__ = "tasks"
     id = db.Column(db.Integer, primary_key=True)
-    workflow_id = db.Column(db.Integer, db.ForeignKey("workflows.id"), nullable=False)
+    workflow_id = db.Column(db.Integer, db.ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50))
     assigned_to = db.Column(db.String(100))
     due_date = db.Column(db.Date)
-    created_at = db.Column(db.DateTime, server_default=func.current_timestamp())
+    created_at = db.Column(db.DateTime, server_default=db.func.current_timestamp())
 
-    workflow = db.relationship("Workflow", backref=db.backref("tasks", lazy="dynamic", cascade="all,delete"))
+    workflow = db.relationship("Workflow", backref=db.backref("tasks", cascade="all, delete-orphan"))
+    logs = db.relationship("Log", back_populates="task", cascade="all, delete-orphan")
 
-    def to_dict(self):
+    def to_public(self):
         return {
             "id": self.id,
             "workflow_id": self.workflow_id,
@@ -64,9 +65,28 @@ class Task(db.Model):
             "status": self.status,
             "assigned_to": self.assigned_to,
             "due_date": self.due_date.isoformat() if self.due_date else None,
-            "created_at": self.created_at.isoformat(sep=" ", timespec="seconds") if self.created_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
-    # optional alias if you already use to_public() elsewhere
+    # back-compat alias
+    def to_dict(self):
+        return self.to_public()
+
+class Log(db.Model):
+    __tablename__ = "logs"
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
+    timestamp = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+    event = db.Column(db.Text)
+    status = db.Column(db.String(50))
+
+    task = db.relationship("Task", back_populates="logs")
+
     def to_public(self):
-        return self.to_dict()
+        return {
+            "id": self.id,
+            "task_id": self.task_id,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "event": self.event,
+            "status": self.status,
+        }

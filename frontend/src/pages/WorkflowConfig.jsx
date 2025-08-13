@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import Section from './_scaffold.jsx';
-import { WorkflowsAPI } from '../lib/workflows'; // create this if you haven't yet
 import { Link } from 'react-router-dom';
+import Section from './_scaffold.jsx';
+import { WorkflowsAPI } from '../lib/workflows';
 
 export default function WorkflowConfig() {
   const [items, setItems] = useState([]);
@@ -92,10 +92,10 @@ export default function WorkflowConfig() {
                     #{w.id} • owner {w.user_id} • {w.created_at?.slice(0,10)}
                   </div>
                 </div>
-                <div style={{ display:'flex', gap:8 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <Link to={`/workflow/${w.id}`}>Open</Link>
                   <button onClick={() => remove(w.id)}>Delete</button>
                 </div>
-                <Link to={`/workflow/${w.id}`} style={{ marginLeft: 16 }}>Open</Link>
               </li>
             ))}
           </ul>

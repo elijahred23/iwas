@@ -12,6 +12,7 @@ from flask_jwt_extended import (
 from sqlalchemy import func
 from ..extensions import db
 from ..models import User
+from werkzeug.security import generate_password_hash
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -33,6 +34,24 @@ def _current_user():
 
 
 # ---- routes ----------------------------------------------------------------
+
+@auth_bp.post("/change-password")
+@jwt_required()
+def change_password():
+    uid = int(get_jwt_identity())
+    user = User.query.get(uid)
+    data = request.get_json(silent=True) or {}
+    current = data.get("current_password") or ""
+    new = data.get("new_password") or ""
+    if not (current and new):
+        return jsonify({"ok": False, "error": "current_password and new_password are required"}), 422
+    if not user.check_password(current):
+        return jsonify({"ok": False, "error": "Current password is incorrect"}), 400
+    if len(new) < 8:
+        return jsonify({"ok": False, "error": "New password must be at least 8 characters"}), 422
+    user.password_hash = generate_password_hash(new, method="scrypt")
+    db.session.commit()
+    return jsonify({"ok": True})
 
 @auth_bp.route("/login", methods=["OPTIONS"])
 def login_options():

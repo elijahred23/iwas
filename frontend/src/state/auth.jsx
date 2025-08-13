@@ -3,6 +3,13 @@ import { api } from '../lib/api.js';
 
 const Ctx = createContext({ user: null, loading: true, login: () => {}, logout: () => {} });
 
+export const AuthAPI = {
+  changePassword: async (current_password, new_password) => {
+    const { data } = await api.post('/auth/change-password', { current_password, new_password });
+    return data;
+  },
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -6,6 +6,9 @@ from .auth.routes import auth_bp
 from .workflows.routes import workflows_bp
 from .integrations.routes import integrations_bp
 from .integrations.jira import jira_bp
+from .analytics.routes import analytics_bp
+from .logs.routes import logs_bp
+from .tasks.routes import tasks_bp
 
 
 def create_app():
@@ -32,6 +35,9 @@ def create_app():
     app.register_blueprint(workflows_bp, url_prefix="/api/workflows")
     app.register_blueprint(integrations_bp, url_prefix="/api/integrations")
     app.register_blueprint(jira_bp, url_prefix="/api/integrations")
+    app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
+    app.register_blueprint(logs_bp, url_prefix="/api/logs")
+    app.register_blueprint(tasks_bp, url_prefix="/api/tasks")
 
     # api/app/__init__.py (inside create_app, before return)
     @app.get("/api/ping")

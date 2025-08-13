@@ -48,7 +48,6 @@ instance/
 
 # --- Logs & dumps ---
 *.log
-logs/
 *.pid
 *.out
 *.err

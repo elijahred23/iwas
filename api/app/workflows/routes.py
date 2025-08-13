@@ -6,6 +6,7 @@ from sqlalchemy import func
 
 from ..extensions import db
 from ..models import User, Workflow, Task, Log
+from ..integrations.slack import send_slack
 
 workflows_bp = Blueprint("workflows", __name__)
 
@@ -24,6 +25,15 @@ def _current_user():
 
 def _is_admin(user: User) -> bool:
     return bool(user and user.role == "admin")
+
+def _notify(user_id: int, text: str) -> None:
+    """Best-effort Slack notify; swallow any errors."""
+    try:
+        send_slack(user_id, text)
+    except Exception:
+        # You could add logging here if you want:
+        # current_app.logger.exception("Slack notify failed")
+        pass
 
 # ---------- workflows CRUD ----------
 
@@ -87,6 +97,10 @@ def create_workflow():
     wf = Workflow(user_id=owner_id, name=name, description=description)
     db.session.add(wf)
     db.session.commit()
+
+    # Slack: workflow created
+    _notify(owner_id, f":sparkles: Workflow created — *{wf.name}* (#{wf.id})")
+
     return jsonify({"ok": True, "item": wf.to_dict()}), 201
 
 
@@ -156,8 +170,14 @@ def delete_workflow(wf_id):
     if not _is_admin(user) and wf.user_id != user.id:
         return jsonify({"ok": False, "error": "Not found"}), 404
 
+    owner_id = wf.user_id
+    name = wf.name
     db.session.delete(wf)
     db.session.commit()
+
+    # Slack: workflow deleted
+    _notify(owner_id, f":wastebasket: Workflow deleted — *{name}* (#{wf_id})")
+
     return jsonify({"ok": True, "deleted": wf_id}), 200
 
 # ---------- tasks CRUD + logs ----------
@@ -209,6 +229,12 @@ def create_task(wf_id):
     db.session.flush()  # get t.id
     db.session.add(Log(task_id=t.id, event="created", status=t.status))
     db.session.commit()
+
+    # Slack: task created
+    due_txt = f" • due {t.due_date.isoformat()}" if t.due_date else ""
+    assigned_txt = f" • {t.assigned_to}" if t.assigned_to else ""
+    _notify(wf.user_id, f":memo: Task created in *{wf.name}* — “{t.name}” (#{t.id}) • {t.status}{assigned_txt}{due_txt}")
+
     return jsonify({"ok": True, "item": t.to_public()}), 201
 
 
@@ -260,6 +286,10 @@ def update_task(task_id):
 
     db.session.add(Log(task_id=t.id, event=changes, status=t.status))
     db.session.commit()
+
+    # Slack: task updated
+    _notify(t.workflow.user_id, f":pencil2: Task updated in *{t.workflow.name}* — “{t.name}” (#{t.id}) • {changes}")
+
     return jsonify({"ok": True, "item": t.to_public()}), 200
 
 
@@ -274,8 +304,16 @@ def delete_task(task_id):
     if not (_is_admin(user) or t.workflow.user_id == user.id):
         return jsonify({"ok": False, "error": "Forbidden"}), 403
 
+    wf = t.workflow
+    name = t.name
+    tid = t.id
+
     db.session.delete(t)
     db.session.commit()
+
+    # Slack: task deleted
+    _notify(wf.user_id, f":wastebasket: Task deleted in *{wf.name}* — “{name}” (#{tid})")
+
     return jsonify({"ok": True}), 200
 
 

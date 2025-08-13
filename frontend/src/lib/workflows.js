@@ -1,15 +1,8 @@
-// frontend/src/lib/workflows.js
 import { api } from './api';
-
+// frontend/src/lib/workflows.js
 export const WorkflowsAPI = {
-  list: (params = {}) =>
-    api.get('/workflows', { params }).then(r => r.data),         // {ok, items, total}
-  create: (payload) =>
-    api.post('/workflows', payload).then(r => r.data),           // {ok, item}
-  get: (id) =>
-    api.get(`/workflows/${id}`).then(r => r.data),               // {ok, item}
-  update: (id, payload) =>
-    api.patch(`/workflows/${id}`, payload).then(r => r.data),    // {ok, item}
-  remove: (id) =>
-    api.delete(`/workflows/${id}`).then(r => r.data),            // {ok, deleted}
+  list: () => api.get('/workflows/').then(r => r.data),
+  create: (body) => api.post('/workflows/', body).then(r => r.data),
+  get: (id) => api.get(`/workflows/${id}`).then(r => r.data),
+  remove: (id) => api.delete(`/workflows/${id}`).then(r => r.data),
 };

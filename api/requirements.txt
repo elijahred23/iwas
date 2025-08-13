@@ -3,3 +3,5 @@ flask-cors
 SQLAlchemy
 PyMySQL[rsa]==1.1.0
 python-dotenv
+cryptography>=42
+requests>=2.31

@@ -2,6 +2,8 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
 from sqlalchemy import func
+from cryptography.fernet import Fernet, InvalidToken
+import os, json
 
 
 class User(db.Model):
@@ -90,3 +92,48 @@ class Log(db.Model):
             "event": self.event,
             "status": self.status,
         }
+def _fernet():
+    key = os.environ.get("INTEGRATION_KEY")
+    if not key:
+        raise RuntimeError("INTEGRATION_KEY is not set")
+    # Accept either str or bytes; Fernet wants bytes
+    return Fernet(key.encode() if isinstance(key, str) else key)
+
+class Integration(db.Model):
+    __tablename__ = "integrations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(50), nullable=False)   # e.g. "slack"
+    credentials = db.Column(db.Text, nullable=False)  # encrypted blob
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    user = db.relationship(
+        "User",
+        backref=db.backref("integrations", lazy="dynamic", cascade="all, delete-orphan")
+    )
+
+    # ---------- helpers ----------
+    def to_public(self):
+        return {"id": self.id, "type": self.type, "user_id": self.user_id}
+
+    def set_secret(self, payload: dict):
+        """Encrypt and store arbitrary JSON credentials."""
+        token = _fernet().encrypt(json.dumps(payload).encode()).decode()
+        self.credentials = token
+
+    def get_secret(self) -> dict | None:
+        """Decrypt credentials; returns dict or None if unreadable."""
+        try:
+            data = _fernet().decrypt(self.credentials.encode())
+            return json.loads(data.decode())
+        except (InvalidToken, Exception):
+            return None
+
+    # Convenience for Slack
+    def set_slack_webhook(self, url: str):
+        self.type = "slack"
+        self.set_secret({"webhook_url": url})
+
+    def slack_webhook(self) -> str | None:
+        data = self.get_secret() or {}
+        return data.get("webhook_url")

@@ -1,6 +1,12 @@
 version: "3.9"
 
 services:
+  # api:
+  #   build:
+  #     context: ../api
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - INTEGRATION_KEY="-vuaWgUUjFT8PCBGVxQFZipPfvaZEp7-msxNf0FKORc="
   db:
     image: mysql:8.0
     restart: unless-stopped

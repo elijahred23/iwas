@@ -4,6 +4,7 @@
 │       └── main.yml
 ├── README.md
 ├── api
+│   ├── alembic.ini
 │   ├── app
 │   │   ├── __init__.py
 │   │   ├── auth
@@ -11,6 +12,11 @@
 │   │   │   └── routes.py
 │   │   ├── config.py
 │   │   ├── extensions.py
+│   │   ├── integrations
+│   │   │   ├── github.py
+│   │   │   ├── jira.py
+│   │   │   ├── routes.py
+│   │   │   └── slack.py
 │   │   ├── main.py
 │   │   ├── models.py
 │   │   ├── scripts
@@ -18,8 +24,13 @@
 │   │   └── workflows
 │   │       └── routes.py
 │   ├── instance
+│   ├── migrations
+│   │   ├── README
+│   │   ├── env.py
+│   │   ├── script.py.mako
+│   │   └── versions
+│   │       └── c73327cd3cae_baseline.py
 │   └── requirements.txt
-├── database
 ├── frontend
 │   ├── README.md
 │   ├── eslint.config.js
@@ -33,10 +44,14 @@
 │   │   ├── assets
 │   │   │   └── react.svg
 │   │   ├── components
-│   │   │   └── Layout.jsx
+│   │   │   ├── Layout.jsx
+│   │   │   └── TaskList.jsx
 │   │   ├── index.css
 │   │   ├── lib
-│   │   │   └── api.js
+│   │   │   ├── api.js
+│   │   │   ├── integrations.js
+│   │   │   ├── tasks.js
+│   │   │   └── workflows.js
 │   │   ├── main.jsx
 │   │   ├── pages
 │   │   │   ├── Analytics.jsx
@@ -50,6 +65,7 @@
 │   │   │   ├── TaskManagement.jsx
 │   │   │   ├── UserManagement.jsx
 │   │   │   ├── WorkflowConfig.jsx
+│   │   │   ├── WorkflowDetail.jsx
 │   │   │   └── _scaffold.jsx
 │   │   └── state
 │   │       └── auth.jsx

@@ -1,20 +1,48 @@
-import { useEffect, useState } from 'react';
+// frontend/src/pages/WorkflowConfig.jsx
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from './_scaffold.jsx';
 import { WorkflowsAPI } from '../lib/workflows';
 
+const PAGE_SIZE = 10;
+const DEBOUNCE_MS = 350;
+
 export default function WorkflowConfig() {
   const [items, setItems] = useState([]);
+  const [total, setTotal] = useState(0);
+
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+
+  // form
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  async function load() {
+  // query state
+  const [q, setQ] = useState('');          // input value
+  const [query, setQuery] = useState('');  // debounced value actually used in request
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState('created_desc'); // UI sort; server still sorts by id asc
+
+  // debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPage(1);
+      setQuery(q.trim());
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  async function load(current = { query, page }) {
     setBusy(true); setErr('');
     try {
-      const data = await WorkflowsAPI.list(); // GET /api/workflows
+      const data = await WorkflowsAPI.list({
+        q: current.query ?? query,
+        page: current.page ?? page,
+        per_page: PAGE_SIZE,
+      });
       setItems(data.items || []);
+      setTotal(data.total ?? (data.items?.length || 0));
     } catch (e) {
       setErr(e?.response?.data?.error || 'Failed to load workflows');
     } finally {
@@ -22,15 +50,37 @@ export default function WorkflowConfig() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [query, page]);
+
+  // client-side sort for display (name/date)
+  const sorted = useMemo(() => {
+    const copy = [...items];
+    switch (sort) {
+      case 'name_asc':
+        copy.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        break;
+      case 'name_desc':
+        copy.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+        break;
+      case 'created_asc':
+        copy.sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+        break;
+      case 'created_desc':
+      default:
+        copy.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+        break;
+    }
+    return copy;
+  }, [items, sort]);
 
   async function create(e) {
     e.preventDefault();
     setErr('');
     try {
-      const { item } = await WorkflowsAPI.create({ name, description }); // POST /api/workflows
-      setItems(prev => [item, ...prev]);
+      const { item } = await WorkflowsAPI.create({ name, description });
+      // if your API returns pagination/total, reload is safest to reflect new totals
       setName(''); setDescription('');
+      await load({ query, page: 1 }); // jump to first page to surface new item
     } catch (e) {
       setErr(e?.response?.data?.error || 'Failed to create workflow');
     }
@@ -39,67 +89,126 @@ export default function WorkflowConfig() {
   async function remove(id) {
     if (!confirm('Delete this workflow?')) return;
     try {
-      await WorkflowsAPI.remove(id); // DELETE /api/workflows/:id
-      setItems(prev => prev.filter(w => w.id !== id));
+      await WorkflowsAPI.remove(id);
+      // reload page; if the last item on last page is removed, step back a page
+      const isLastOnPage = items.length === 1 && page > 1;
+      await load({ query, page: isLastOnPage ? page - 1 : page });
     } catch (e) {
       alert(e?.response?.data?.error || 'Failed to delete workflow');
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   return (
     <Section title="Workflow Configuration" subtitle="Manage your workflows and automation settings">
-      <div className="page-card" style={{ padding:16, borderRadius:8, marginTop:12 }}>
-        <h3 style={{ marginTop:0 }}>Create workflow</h3>
-        <form onSubmit={create} style={{ display:'grid', gap:8, maxWidth: 520 }}>
+      {/* Toolbar */}
+      <div className="toolbar">
+        <div className="toolbar-left">
           <input
+            className="input input-sm"
+            placeholder="Search workflows…"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+          <select
+            className="input input-sm"
+            value={sort}
+            onChange={e => setSort(e.target.value)}
+            aria-label="Sort"
+          >
+            <option value="created_desc">Newest</option>
+            <option value="created_asc">Oldest</option>
+            <option value="name_asc">Name A–Z</option>
+            <option value="name_desc">Name Z–A</option>
+          </select>
+          <button className=" btn-secondary" onClick={() => load()} disabled={busy}>
+            {busy ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+        <div className="toolbar-right">
+          <span className="pill">{total} total</span>
+        </div>
+      </div>
+
+      {/* Create */}
+      <div className="page-card" style={{ padding:16, borderRadius:12, marginTop:12 }}>
+        <h3 style={{ marginTop:0 }}>Create workflow</h3>
+        <form onSubmit={create} style={{ display:'grid', gap:10, maxWidth: 560 }}>
+          <input
+            className="input"
             placeholder="Name"
             value={name}
             onChange={e=>setName(e.target.value)}
             required
-            style={{ padding:8, border:'1px solid #ccc', borderRadius:6 }}
           />
           <textarea
+            className="input"
             placeholder="Description (optional)"
             value={description}
             onChange={e=>setDescription(e.target.value)}
             rows={3}
-            style={{ padding:8, border:'1px solid #ccc', borderRadius:6 }}
           />
-          <div><button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Add workflow'}</button></div>
+          <div>
+            <button type="submit" className=" btn-primary" disabled={busy}>
+              {busy ? 'Saving…' : 'Add workflow'}
+            </button>
+          </div>
         </form>
       </div>
 
       {err && <div style={{ color:'crimson', marginTop:12 }}>{err}</div>}
 
+      {/* List */}
       <div style={{ marginTop:16 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-          <h3 style={{ margin:0 }}>Existing workflows</h3>
-          <button onClick={load} disabled={busy}>{busy ? 'Refreshing…' : 'Refresh'}</button>
-        </div>
+        <h3 style={{ margin:'0 0 8px' }}>Existing workflows</h3>
 
         {items.length === 0 ? (
-          <div style={{ opacity:0.7 }}>{busy ? 'Loading…' : 'No workflows yet.'}</div>
+          <div className="empty-state">
+            {busy ? 'Loading…' : (query ? 'No results.' : 'No workflows yet.')}
+          </div>
         ) : (
-          <ul style={{ listStyle:'none', padding:0, margin:0 }}>
-            {items.map(w => (
-              <li key={w.id}
-                  style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
-                           padding:'12px 10px', borderBottom:'1px solid #eee' }}>
-                <div>
-                  <div style={{ fontWeight:600 }}>{w.name}</div>
-                  {w.description && <div style={{ opacity:0.85 }}>{w.description}</div>}
-                  <div style={{ fontSize:12, opacity:0.6 }}>
-                    #{w.id} • owner {w.user_id} • {w.created_at?.slice(0,10)}
+          <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:10 }}>
+            {sorted.map(w => (
+              <li key={w.id} className="card-row">
+                <div className="card-row-main">
+                  <div className="card-title">{w.name}</div>
+                  {w.description && <div className="card-subtitle">{w.description}</div>}
+                  <div className="meta">
+                    <span className="pill">#{w.id}</span>
+                    <span className="sep">•</span>
+                    <span>owner {w.user_id}</span>
+                    <span className="sep">•</span>
+                    <span>{(w.created_at || '').slice(0,10)}</span>
                   </div>
                 </div>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <button onClick={() => remove(w.id)}>Delete</button>
+                <div className="card-row-actions">
+                  <Link className=" btn-ghost" to={`/workflow/${w.id}`}>Open</Link>
+                  <button className=" btn-danger" onClick={() => remove(w.id)}>Delete</button>
                 </div>
-                <Link to={`/workflow/${w.id}`} style={{ marginLeft: 16 }}>Open</Link>
               </li>
             ))}
           </ul>
         )}
+
+        {/* Pagination */}
+        <div className="pager">
+          <button
+            className=" btn-ghost"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page <= 1 || busy}
+          >
+            ← Prev
+          </button>
+          <span className="pill">Page {page} / {totalPages}</span>
+          <button
+            className=" btn-ghost"
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages || busy}
+          >
+            Next →
+          </button>
+        </div>
       </div>
     </Section>
   );

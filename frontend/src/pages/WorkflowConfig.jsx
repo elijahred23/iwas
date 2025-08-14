@@ -183,7 +183,7 @@ export default function WorkflowConfig() {
                   </div>
                 </div>
                 <div className="card-row-actions">
-                  <Link className=" btn-ghost" to={`/workflow/${w.id}`}>Open</Link>
+                  <Link className=" btn-ghost" to={`/workflows/${w.id}`}>Open</Link>
                   <button className=" btn-danger" onClick={() => remove(w.id)}>Delete</button>
                 </div>
               </li>

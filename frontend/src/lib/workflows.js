@@ -1,26 +1,29 @@
-// frontend/src/lib/workflows.js
 import { api } from './api';
 
-// GET /api/workflows?q=...&page=...&per_page=...
-async function list(params = {}) {
-  const { data } = await api.get('/workflows', { params });
-  return data;
-}
+export const WorkflowsAPI = {
+  list: async (opts = {}) => {
+    const params = new URLSearchParams();
+    if (opts.q) params.set('q', opts.q);
+    if (opts.page) params.set('page', String(opts.page));
+    if (opts.per_page) params.set('per_page', String(opts.per_page));
+    const qs = params.toString();
+    const { data } = await api.get(`/workflows${qs ? `?${qs}` : ''}`);
+    return data;
+  },
 
-// POST /api/workflows/  (note the trailing slash to avoid 308 on some setups)
-async function create(payload) {
-  const { data } = await api.post('/workflows/', payload);
-  return data;
-}
+  get: async (id) => {
+    const { data } = await api.get(`/workflows/${id}`); // <-- no ":id"
+    return data;
+  },
 
-async function get(id) {
-  const { data } = await api.get(`/workflows/${id}`);
-  return data;
-}
+  create: async (payload) => {
+    const { data } = await api.post('/workflows', payload); // no trailing slash
+    return data;
+  },
 
-async function remove(id) {
-  const { data } = await api.delete(`/workflows/${id}`);
-  return data;
-}
+  remove: async (id) => {
+    const { data } = await api.delete(`/workflows/${id}`);
+    return data;
+  },
+};
 
-export const WorkflowsAPI = { list, create, get, remove };

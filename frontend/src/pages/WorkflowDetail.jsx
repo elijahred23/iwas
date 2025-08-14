@@ -15,7 +15,8 @@ export default function WorkflowDetail() {
   const [due, setDue] = useState(''); // YYYY-MM-DD
 
   async function load() {
-    setBusy(true); setErr('');
+    setBusy(true);
+    setErr('');
     try {
       const [wfResp, tResp] = await Promise.all([
         WorkflowsAPI.get(id),
@@ -69,10 +70,7 @@ export default function WorkflowDetail() {
   }
 
   return (
-    <Section
-      title={wf ? `Workflow: ${wf.name}` : 'Workflow'}
-      subtitle={<Link to="/workflows">← Back</Link>}
-    >
+    <Section title={wf ? `Workflow: ${wf.name}` : 'Workflow'} subtitle={<Link to="/workflows">← Back</Link>}>
       {err && <div style={{ color:'crimson', marginBottom:12 }}>{err}</div>}
 
       {wf && (

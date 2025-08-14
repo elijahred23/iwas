@@ -27,7 +27,7 @@ def create_app():
             "origins": ["http://localhost:5173", "http://127.0.0.1:5173"]
         }},
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
@@ -47,20 +47,18 @@ def create_app():
         return {"ok": True, "service": "api"}
 
 
-    # ✅ after_request goes here (applies to every response, incl. OPTIONS)
     @app.after_request
     def add_cors_headers(resp):
-        # Echo back the dev origin if it’s one we allow
         allowed = {"http://localhost:5173", "http://127.0.0.1:5173"}
         origin = request.headers.get("Origin")
         if origin in allowed:
             resp.headers["Access-Control-Allow-Origin"] = origin
             resp.headers["Vary"] = "Origin"
-        # Credentials + common headers/methods
         resp.headers["Access-Control-Allow-Credentials"] = "true"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRF-Token, X-Requested-With"
         resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         return resp
+
 
     with app.app_context():
         db.create_all()

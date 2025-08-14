@@ -102,6 +102,35 @@ export default function WorkflowConfig() {
 
   return (
     <Section title="Workflow Configuration" subtitle="Manage your workflows and automation settings">
+{/* Create */}
+      <div className="page-card" style={{ padding:16, borderRadius:12, marginTop:12, marginBottom:16 }}>
+        <h3 style={{ marginTop:0 }}>Create workflow</h3>
+        <form onSubmit={create} style={{ display:'grid', gap:10, maxWidth: 560 }}>
+          <input
+            className="input"
+            placeholder="Name"
+            value={name}
+            onChange={e=>setName(e.target.value)}
+            required
+          />
+          <textarea
+            className="input"
+            placeholder="Description (optional)"
+            value={description}
+            onChange={e=>setDescription(e.target.value)}
+            rows={3}
+          />
+          <div>
+            <button type="submit" className=" btn-primary" disabled={busy}>
+              {busy ? 'Saving…' : 'Add workflow'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {err && <div style={{ color:'crimson', marginTop:12 }}>{err}</div>}
+
+
       {/* Toolbar */}
       <div className="toolbar">
         <div className="toolbar-left">
@@ -131,35 +160,7 @@ export default function WorkflowConfig() {
         </div>
       </div>
 
-      {/* Create */}
-      <div className="page-card" style={{ padding:16, borderRadius:12, marginTop:12 }}>
-        <h3 style={{ marginTop:0 }}>Create workflow</h3>
-        <form onSubmit={create} style={{ display:'grid', gap:10, maxWidth: 560 }}>
-          <input
-            className="input"
-            placeholder="Name"
-            value={name}
-            onChange={e=>setName(e.target.value)}
-            required
-          />
-          <textarea
-            className="input"
-            placeholder="Description (optional)"
-            value={description}
-            onChange={e=>setDescription(e.target.value)}
-            rows={3}
-          />
-          <div>
-            <button type="submit" className=" btn-primary" disabled={busy}>
-              {busy ? 'Saving…' : 'Add workflow'}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {err && <div style={{ color:'crimson', marginTop:12 }}>{err}</div>}
-
-      {/* List */}
+            {/* List */}
       <div style={{ marginTop:16 }}>
         <h3 style={{ margin:'0 0 8px' }}>Existing workflows</h3>
 

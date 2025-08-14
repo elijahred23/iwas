@@ -7,6 +7,8 @@
 │   ├── alembic.ini
 │   ├── app
 │   │   ├── __init__.py
+│   │   ├── analytics
+│   │   │   └── routes.py
 │   │   ├── auth
 │   │   │   ├── __init__.py
 │   │   │   └── routes.py
@@ -19,8 +21,12 @@
 │   │   │   └── slack.py
 │   │   ├── main.py
 │   │   ├── models.py
+│   │   ├── notifications
+│   │   │   └── routes.py
 │   │   ├── scripts
 │   │   │   └── create_user.py
+│   │   ├── tasks
+│   │   │   └── routes.py
 │   │   └── workflows
 │   │       └── routes.py
 │   ├── instance
@@ -48,8 +54,10 @@
 │   │   │   └── TaskList.jsx
 │   │   ├── index.css
 │   │   ├── lib
+│   │   │   ├── analytics.js
 │   │   │   ├── api.js
 │   │   │   ├── integrations.js
+│   │   │   ├── notifications.js
 │   │   │   ├── tasks.js
 │   │   │   └── workflows.js
 │   │   ├── main.jsx

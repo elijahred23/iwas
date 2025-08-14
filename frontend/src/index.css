@@ -373,3 +373,196 @@ img, svg { display: block; max-width: 100%; }
     background: color-mix(in srgb, var(--text) 18%, transparent);
   }
 }
+/* --- Login background: soft dotted grid + subtle gradient --- */
+.login-bg {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background-color: #f6f8fb;
+  /* dotted grid */
+  --dot-color: rgba(16, 24, 40, 0.10);
+  --dot-size: 2px;
+  --dot-space: 18px;
+  background-image:
+    radial-gradient(var(--dot-color) var(--dot-size), transparent var(--dot-size)),
+    linear-gradient(180deg, rgba(255,255,255,0.9), rgba(240,244,255,0.7));
+  background-size: var(--dot-space) var(--dot-space), 100% 100%;
+  background-position: 0 0, 0 0;
+  background-attachment: fixed;
+}
+
+/* --- Card --- */
+.login-card {
+  width: min(92vw, 420px);
+  background: #fff;
+  border: 1px solid rgba(16,24,40,0.08);
+  border-radius: 16px;
+  padding: 22px 20px;
+  box-shadow: 0 10px 35px rgba(16, 24, 40, 0.08);
+}
+
+.login-head {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.login-logo {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #22d3ee);
+  color: white;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  letter-spacing: 0.5px;
+}
+.login-head h1 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.login-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #667085;
+}
+
+/* --- Inputs --- */
+.label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #344054;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #D0D5DD;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: box-shadow .15s, border-color .15s, background-color .15s;
+}
+.input:focus {
+  border-color: #84caff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+.input::placeholder { color: #98A2B3; }
+
+.input-with-btn {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+/* --- Buttons (reuse your existing classes if already defined) --- */
+.btn-primary {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .05s ease, filter .2s ease;
+}
+.btn-primary:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+}
+.btn-primary:active { transform: translateY(1px); }
+
+.btn-ghost {
+  padding: 8px 10px;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f2937;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-ghost:hover { background: #f8fafc; }
+
+/* --- Helpers --- */
+.alert {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdcf;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin: 8px 0 6px;
+}
+
+.login-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.checkbox {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: #475467;
+}
+
+.link {
+  font-size: 13px;
+  color: #2563eb;
+}
+.link:hover { text-decoration: underline; }
+
+.login-foot {
+  text-align: center;
+  font-size: 12px;
+  color: #98A2B3;
+  margin-top: 10px;
+}
+
+/* Optional: dark mode polish */
+@media (prefers-color-scheme: dark) {
+  .login-bg {
+    background-color: #0B1220;
+    --dot-color: rgba(255,255,255,0.08);
+    background-image:
+      radial-gradient(var(--dot-color) var(--dot-size), transparent var(--dot-size)),
+      linear-gradient(180deg, rgba(14,23,42,0.92), rgba(14,23,42,0.6));
+  }
+  .login-card { background:#0f172a; border-color: rgba(255,255,255,0.06); }
+  .label, .login-sub, .checkbox, .login-foot { color:#cbd5e1; }
+  .input { background:#0b1220; border-color:#1f2a44; color:#e5e7eb; }
+  .btn-ghost { background:#0b1220; border-color:#1f2a44; color:#e5e7eb; }
+  .link { color:#60a5fa; }
+}
+
+/* Responsive/interactive shell */
+.sidebar { width: 240px; display:flex; flex-direction:column; }
+@media (max-width: 960px) {
+  .sidebar {
+    position: fixed; inset: 0 auto 0 0; transform: translateX(-100%);
+    transition: transform .2s ease; z-index: 1000; box-shadow: 0 20px 60px rgba(0,0,0,.1);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .scrim {
+    position: fixed; inset: 0; background: rgba(15,23,42,.35);
+    border: 0; padding: 0; margin: 0; z-index: 900;
+  }
+}
+
+/* Nav link polish */
+.nav-link { display:flex; align-items:center; gap:10px; font-weight:500; }
+.nav-link.active {
+  background: linear-gradient(90deg, rgba(37,99,235,.10), transparent 60%);
+  color: #1d4ed8;
+  border: 1px solid rgba(37,99,235,.18);
+}
+

@@ -6,6 +6,7 @@ import { api } from '../lib/api.js';
 export default function Login() {
   const [email, setEmail] = useState('elijah@example.com');
   const [password, setPassword] = useState('changeme');
+  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const { login } = useAuth();
@@ -16,10 +17,7 @@ export default function Login() {
     setError('');
     setBusy(true);
     try {
-      // 1) Send credentials; server sets HttpOnly cookie
       await api.post('/auth/login', { email, password });
-
-      // 2) Fetch current user (proves the cookie worked)
       const me = await api.get('/auth/me');
       if (me.data?.ok) {
         login(me.data.user);
@@ -35,35 +33,68 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
-      <form onSubmit={onSubmit} className="page-card" style={{ width: 340 }}>
-        <h2>Sign in to IWAS</h2>
+    <div className="login-bg">
+      <form className="login-card" onSubmit={onSubmit} autoComplete="on">
+        <div className="login-head">
+          <div className="login-logo" aria-hidden>IWAS</div>
+          <h1>Sign in</h1>
+          <p className="login-sub">Access your workflows, tasks, and integrations</p>
+        </div>
 
-        <label style={{ display: 'block', marginTop: 12 }}>Email</label>
+        {error && (
+          <div className="alert" role="alert">
+            {error}
+          </div>
+        )}
+
+        <label className="label" htmlFor="email">Email</label>
         <input
+          id="email"
+          className="input"
           type="email"
           value={email}
           onChange={e=>setEmail(e.target.value)}
-          style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 6 }}
+          placeholder="you@example.com"
+          autoComplete="email"
+          required
         />
 
-        <label style={{ display: 'block', marginTop: 12 }}>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={e=>setPassword(e.target.value)}
-          style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 6 }}
-        />
+        <label className="label" htmlFor="password">Password</label>
+        <div className="input-with-btn">
+          <input
+            id="password"
+            className="input"
+            type={showPass ? 'text' : 'password'}
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
+            placeholder="••••••••"
+            autoComplete="current-password"
+            required
+          />
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={()=>setShowPass(s => !s)}
+            aria-label={showPass ? 'Hide password' : 'Show password'}
+          >
+            {showPass ? 'Hide' : 'Show'}
+          </button>
+        </div>
 
-        {error && <div style={{ color: 'crimson', marginTop: 8 }}>{error}</div>}
+        <div className="login-actions">
+          <label className="checkbox">
+            <input type="checkbox" defaultChecked /> Remember me
+          </label>
+          <a className="link" href="#" onClick={e=>e.preventDefault()}>Forgot password?</a>
+        </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          style={{ width: '100%', marginTop: 16, padding: 10, borderRadius: 6 }}
-        >
+        <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Signing in…' : 'Continue'}
         </button>
+
+        <p className="login-foot">
+          By continuing you agree to the Terms & Privacy.
+        </p>
       </form>
     </div>
   );

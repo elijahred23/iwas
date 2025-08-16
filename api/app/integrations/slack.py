@@ -1,4 +1,3 @@
-# api/app/integrations/slack.py
 import os, json, requests
 from cryptography.fernet import Fernet
 from ..extensions import db

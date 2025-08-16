@@ -1,4 +1,3 @@
-# api/app/integrations/jira.py
 from __future__ import annotations
 
 import json

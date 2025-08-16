@@ -1,4 +1,3 @@
-// frontend/src/lib/integrations.js
 import { api } from './api';
 
 export const IntegrationsAPI = {

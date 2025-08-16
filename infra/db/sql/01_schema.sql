@@ -1,5 +1,3 @@
--- 01_schema.sql
--- Tables (plural to avoid reserved-name clashes like `user`)
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,

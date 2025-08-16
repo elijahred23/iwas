@@ -7,7 +7,7 @@ export default function TaskList({ workflow }) {
   const [err, setErr] = useState('');
   const [name, setName] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
-  const [dueDate, setDueDate] = useState(''); // YYYY-MM-DD
+  const [dueDate, setDueDate] = useState(''); 
 
   async function load() {
     setBusy(true); setErr('');

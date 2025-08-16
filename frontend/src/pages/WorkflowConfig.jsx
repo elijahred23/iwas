@@ -1,4 +1,3 @@
-// frontend/src/pages/WorkflowConfig.jsx
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from './_scaffold.jsx';

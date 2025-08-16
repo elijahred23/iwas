@@ -1,4 +1,3 @@
-# api/app/workflows/routes.py
 from datetime import date
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity

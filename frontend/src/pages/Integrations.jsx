@@ -1,4 +1,3 @@
-// frontend/src/pages/Integrations.jsx
 import { useEffect, useMemo, useState } from 'react';
 import Section from './_scaffold.jsx';
 import { IntegrationsAPI } from '../lib/integrations';
@@ -6,7 +5,6 @@ import { IntegrationsAPI } from '../lib/integrations';
 const TABS = ['slack', 'github', 'jira'];
 
 export default function Integrations() {
-  // ---------- tabs ----------
   const initialTab = useMemo(() => {
     const h = (typeof window !== 'undefined' && window.location.hash || '').replace('#', '').toLowerCase();
     return TABS.includes(h) ? h : (localStorage.getItem('integrations.activeTab') || 'slack');

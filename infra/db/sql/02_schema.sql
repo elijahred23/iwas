@@ -1,8 +1,6 @@
--- 02_seed.sql  (idempotent bulk seed)
 -- === Vars ===
 SET @ADMIN_EMAIL := 'elijah@example.com';
 SET @ADMIN_HASH  := 'scrypt:32768:8:1$NiKtNjszc4HtW3XZ$ddf906cce53d98da6d6afed899e795c7c8637d27dc1a1b30951204408dfda1b6111759c63905a151d32850b94bd40dc3a92d716c91c8bbf40ef2fb8e07fc447f';
--- we'll use the same hash for all dummy users so their password is `changeme`
 SET @CHANGEME := @ADMIN_HASH;
 
 -- === Users ===

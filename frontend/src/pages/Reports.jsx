@@ -8,7 +8,6 @@ function fmt(dateLike) {
   if (!dateLike) return '';
   try {
     const s = String(dateLike);
-    // handle "2025-08-13T12:34:56" or "2025-08-13"
     return s.length >= 10 ? s.slice(0, 10) : s;
   } catch {
     return '';
@@ -36,7 +35,7 @@ export default function Reports() {
 
   // filters
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState('all'); // all | pending | done
+  const [status, setStatus] = useState('all'); 
   const [wfId, setWfId] = useState('all');
   const [assignedTo, setAssignedTo] = useState('');
   const [fromDate, setFromDate] = useState(''); // created_at >=

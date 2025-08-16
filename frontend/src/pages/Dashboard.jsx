@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from './_scaffold.jsx';
 import { AnalyticsAPI } from '../lib/analytics';
-import { NotificationsAPI } from '../lib/notifications'; // remove if you don't want the feed
+import { NotificationsAPI } from '../lib/notifications'; 
 
 const nf = new Intl.NumberFormat();
 

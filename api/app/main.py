@@ -6,5 +6,4 @@ if __name__ == "__main__":
 
 @app.after_request
 def add_cors_headers(resp):
-    # same body as above
     return resp

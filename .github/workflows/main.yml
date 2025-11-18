@@ -19,9 +19,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # ---------------------------
-      # Build & Push API Image
-      # ---------------------------
       - name: Build & Push API
         uses: docker/build-push-action@v6
         with:
@@ -32,9 +29,6 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
 
-      # ---------------------------
-      # Build & Push Frontend Image
-      # ---------------------------
       - name: Build & Push Frontend
         uses: docker/build-push-action@v6
         with:
@@ -43,11 +37,8 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_TOKEN }}/iwas-frontend:${{ github.sha }}
 
-  # ---------------------------------------------------------------------
-  # Deploy to DigitalOcean Kubernetes
-  # ---------------------------------------------------------------------
   deploy:
     name: Apply All Kubernetes Resources
     needs: build-and-push
@@ -56,40 +47,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Install doctl
       - name: Install doctl
         run: |
           curl -sL https://github.com/digitalocean/doctl/releases/download/v1.108.0/doctl-1.108.0-linux-amd64.tar.gz -o doctl.tar.gz
           tar -xzf doctl.tar.gz
           sudo mv doctl /usr/local/bin/
 
-      # Authenticate
       - name: Authenticate doctl
         run: doctl auth init -t "${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
 
-      # Load kubeconfig
       - name: Fetch kubeconfig
         run: doctl kubernetes cluster kubeconfig save eli-k8s
 
-      # Apply all manifests
       - name: Apply Kubernetes manifests
         run: |
-          kubectl apply -f infra/k8s/mysql-initdb-configmap.yaml
-          kubectl apply -f infra/k8s/mysql-deployment.yaml
-          kubectl apply -f infra/k8s/api-deployment.yaml
-          kubectl apply -f infra/k8s/frontend-deployment.yaml
-          kubectl apply -f infra/k8s/services.yaml
-          # kubectl apply -f infra/k8s/ingress.yaml
+          # Apply namespace first
+          kubectl apply -f infra/k8s/iwas-namespace.yaml
 
-      # Patch with latest images
+          # Apply config + secret inside the namespace
+          kubectl apply -n iwas -f infra/k8s/iwas-config.yaml
+          kubectl apply -n iwas -f infra/k8s/iwas-secret.yaml
+
+          # Apply MySQL
+          kubectl apply -n iwas -f infra/k8s/mysql-initdb-configmap.yaml
+          kubectl apply -n iwas -f infra/k8s/mysql-deployment.yaml
+
+          # API + Frontend
+          kubectl apply -n iwas -f infra/k8s/api-deployment.yaml
+          kubectl apply -n iwas -f infra/k8s/frontend-deployment.yaml
+
+          # Services
+          kubectl apply -n iwas -f infra/k8s/services.yaml
+
       - name: Patch deployments with latest images
         run: |
-          kubectl set image deployment/iwas-api iwas-api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
-          kubectl set image deployment/iwas-frontend frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
+          kubectl set image -n iwas deployment/iwas-api iwas-api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
+          kubectl set image -n iwas deployment/iwas-frontend frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
 
-      # Wait for rollout
       - name: Wait for rollouts
         run: |
-          kubectl rollout status deployment/mysql --timeout=180s || true
-          kubectl rollout status deployment/iwas-api --timeout=180s
-          kubectl rollout status deployment/iwas-frontend --timeout=180s
+          kubectl rollout status -n iwas deployment/mysql --timeout=180s || true
+          kubectl rollout status -n iwas deployment/iwas-api --timeout=180s
+          kubectl rollout status -n iwas deployment/iwas-frontend --timeout=180s

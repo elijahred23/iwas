@@ -92,7 +92,7 @@
 │       ├── api-deployment.yaml
 │       ├── frontend-deployment.yaml
 │       ├── iwas-config.yaml
-│       ├── iwas-configmap.yaml
+│       ├── iwas-namespace.yaml
 │       ├── iwas-secret.yaml
 │       ├── mysql-deployment.yaml
 │       ├── mysql-initdb-configmap.yaml

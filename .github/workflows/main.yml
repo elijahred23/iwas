@@ -38,7 +38,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
-
   deploy:
     name: Apply All Kubernetes Resources
     needs: build-and-push
@@ -57,7 +56,7 @@ jobs:
         run: doctl auth init -t "${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
 
       - name: Fetch kubeconfig
-        run: doctl kubernetes cluster kubeconfig save iwas-k8s
+        run: doctl kubernetes cluster kubeconfig save eli-k8s
 
       - name: Apply Kubernetes manifests
         run: |
@@ -65,14 +64,12 @@ jobs:
           kubectl apply -f infra/k8s/api-deployment.yaml
           kubectl apply -f infra/k8s/frontend-deployment.yaml
           kubectl apply -f infra/k8s/services.yaml
+          # kubectl apply -f infra/k8s/ingress.yaml  ← only if you add ingress later
 
       - name: Patch deployments with latest images
         run: |
-          kubectl set image deployment/iwas-api \
-            api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
-          
-          kubectl set image deployment/iwas-frontend \
-            frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
+          kubectl set image deployment/iwas-api api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
+          kubectl set image deployment/iwas-frontend frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
 
       - name: Wait for rollouts
         run: |

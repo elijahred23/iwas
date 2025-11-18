@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iwas-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iwas-frontend
+  template:
+    metadata:
+      labels:
+        app: iwas-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: elijahproctor/iwas-frontend:latest
+          ports:
+            - containerPort: 80

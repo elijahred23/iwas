@@ -67,10 +67,16 @@ jobs:
         run: doctl kubernetes cluster kubeconfig save eli-k8s
 
 
+      # Automatically Reset MySQL PVC (DEV ONLY)
+      - name: Reset MySQL PVC (dev environment)
+        run: |
+          echo "Deleting mysql-pvc to force re-init (dev only)..."
+          kubectl delete pvc mysql-pvc --ignore-not-found=true
+
       # Apply All Kubernetes Manifests
       - name: Apply Kubernetes manifests
         run: |
-          # If using namespace
+          # Namespace
           kubectl apply -f infra/k8s/iwas-namespace.yaml
 
           # Config + Secret
@@ -81,20 +87,18 @@ jobs:
           kubectl apply -f infra/k8s/mysql-initdb-configmap.yaml
           kubectl apply -f infra/k8s/mysql-deployment.yaml
 
-          # API + Frontend Deployments
+          # API + Frontend
           kubectl apply -f infra/k8s/api-deployment.yaml
           kubectl apply -f infra/k8s/frontend-deployment.yaml
 
           # Services
           kubectl apply -f infra/k8s/services.yaml
 
-
       # Patch Deployments with Latest Images
       - name: Patch deployments with latest images
         run: |
           kubectl set image deployment/iwas-api iwas-api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
           kubectl set image deployment/iwas-frontend frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
-
 
       # Wait for rollout
       - name: Wait for rollout

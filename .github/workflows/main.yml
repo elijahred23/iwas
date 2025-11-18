@@ -85,7 +85,7 @@ jobs:
       - name: Patch deployments with latest images
         run: |
           kubectl set image deployment/iwas-api iwas-api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
-          kubectl set image deployment/iwas-frontend iwas-frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
+          kubectl set image deployment/iwas-frontend frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
 
       # Wait for rollout
       - name: Wait for rollouts

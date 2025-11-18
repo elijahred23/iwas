@@ -38,6 +38,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
+
   deploy:
     name: Apply All Kubernetes Resources
     needs: build-and-push
@@ -60,11 +61,21 @@ jobs:
 
       - name: Apply Kubernetes manifests
         run: |
+          # Must apply ConfigMap FIRST
+          kubectl apply -f infra/k8s/mysql-initdb-configmap.yaml
+
+          # Then DB deployment
           kubectl apply -f infra/k8s/mysql-deployment.yaml
+
+          # API + Frontend deployments
           kubectl apply -f infra/k8s/api-deployment.yaml
           kubectl apply -f infra/k8s/frontend-deployment.yaml
+
+          # Services (API, frontend, MySQL)
           kubectl apply -f infra/k8s/services.yaml
-          # kubectl apply -f infra/k8s/ingress.yaml  ← only if you add ingress later
+
+          # Ingress optional
+          # kubectl apply -f infra/k8s/ingress.yaml
 
       - name: Patch deployments with latest images
         run: |

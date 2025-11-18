@@ -5,4 +5,4 @@ metadata:
 data:
   FLASK_ENV: "production"
   CORS_ORIGINS: "http://localhost:5173"
-  DATABASE_URL: "mysql+pymysql://iwas:devpassword@mysql:3306/iwas"
+  DATABASE_URL: "mysql+pymysql://iwas:iwaspass@mysql:3306/iwas"

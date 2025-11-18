@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iwas-config
+data:
+  FLASK_ENV: "production"
+  CORS_ORIGINS: "http://localhost:5173"
+  DATABASE_URL: "mysql+pymysql://iwas:devpassword@mysql:3306/iwas"

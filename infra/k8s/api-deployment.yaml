@@ -13,27 +13,12 @@ spec:
         app: iwas-api
     spec:
       containers:
-        - name: api
-          image: elijahproctor/iwas-api:latest
-          env:
-            - name: DB_HOST
-              value: mysql
-            - name: DB_PORT
-              value: "3306"
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_DATABASE
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_USER
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_PASSWORD
+        - name: iwas-api
+          image: elijahred23/chat-book-site-api:0.0.65
           ports:
             - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: iwas-config
+            - secretRef:
+                name: iwas-secret

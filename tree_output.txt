@@ -87,6 +87,15 @@
 │   ├── docker
 │   │   ├── api.Dockerfile
 │   │   └── frontend.Dockerfile
-│   └── docker-compose.yml
+│   ├── docker-compose.yml
+│   └── k8s
+│       ├── api-deployment.yaml
+│       ├── frontend-deployment.yaml
+│       ├── iwas-config.yaml
+│       ├── iwas-configmap.yaml
+│       ├── iwas-secret.yaml
+│       ├── mysql-deployment.yaml
+│       ├── mysql-initdb-configmap.yaml
+│       └── services.yaml
 ├── instance
 └── tree_output.txt

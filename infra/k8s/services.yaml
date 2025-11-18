@@ -1,3 +1,6 @@
+# =======================
+# MySQL Service
+# =======================
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,8 +10,14 @@ spec:
   selector:
     app: mysql
   ports:
-    - port: 3306
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+
 ---
+# =======================
+# Flask API Service
+# =======================
 apiVersion: v1
 kind: Service
 metadata:
@@ -18,9 +27,14 @@ spec:
   selector:
     app: iwas-api
   ports:
-    - port: 5000
+    - name: http
+      port: 5000
       targetPort: 5000
+
 ---
+# =======================
+# Frontend (React) Service
+# =======================
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,5 +44,6 @@ spec:
   selector:
     app: iwas-frontend
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 80

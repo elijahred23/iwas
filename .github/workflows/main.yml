@@ -8,7 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  NAMESPACE: iwas-${{ github.ref_name }}
+  RAW_BRANCH: ${{ github.ref_name }}
+  SANITIZED_BRANCH: ${{ github.ref_name  | replace('/', '-') | replace('_', '-') | toLower }}
+  NAMESPACE: iwas-${{ github.ref_name  | replace('/', '-') | replace('_', '-') | toLower }}
   SHA_TAG: ${{ github.sha }}
 
 jobs:

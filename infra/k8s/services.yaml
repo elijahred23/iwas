@@ -40,7 +40,7 @@ kind: Service
 metadata:
   name: iwas-frontend
 spec:
-  type: ClusterIP   # <<< CHANGE THIS LINE
+  type: LoadBalancer     # ⭐ PUBLIC ENTRY POINT
   selector:
     app: iwas-frontend
   ports:

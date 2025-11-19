@@ -7,16 +7,14 @@ spec:
   rules:
     - http:
         paths:
-          # API: anything starting with /api goes to Flask
           - path: /api
             pathType: Prefix
             backend:
               service:
                 name: iwas-api
                 port:
-                  number: 5000
+                  number: 5050
 
-          # Frontend SPA: everything else goes to React
           - path: /
             pathType: Prefix
             backend:

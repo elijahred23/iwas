@@ -14,10 +14,25 @@ spec:
       port: 3306
       targetPort: 3306
 
+# ===================
+# Frontend
+# ===================
+apiVersion: v1
+kind: Service
+metadata:
+  name: iwas-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: iwas-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+
 ---
-# =======================
-# Flask API Service
-# =======================
+# ===================
+# API
+# ===================
 apiVersion: v1
 kind: Service
 metadata:
@@ -27,23 +42,5 @@ spec:
   selector:
     app: iwas-api
   ports:
-    - name: http
-      port: 5050
+    - port: 5050
       targetPort: 5050
-
----
-# =======================
-# Frontend (React) Service
-# =======================
-apiVersion: v1
-kind: Service
-metadata:
-  name: iwas-frontend
-spec:
-  type: LoadBalancer     # ⭐ PUBLIC ENTRY POINT
-  selector:
-    app: iwas-frontend
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80

@@ -28,8 +28,8 @@ spec:
     app: iwas-api
   ports:
     - name: http
-      port: 5000
-      targetPort: 5000
+      port: 5050
+      targetPort: 5050
 
 ---
 # =======================
@@ -40,7 +40,7 @@ kind: Service
 metadata:
   name: iwas-frontend
 spec:
-  type: LoadBalancer
+  type: ClusterIP   # <<< CHANGE THIS LINE
   selector:
     app: iwas-frontend
   ports:

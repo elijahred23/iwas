@@ -1,32 +1,54 @@
 version: "3.9"
 
 services:
-  # api:
-  #   build:
-  #     context: ../api
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     - INTEGRATION_KEY="-vuaWgUUjFT8PCBGVxQFZipPfvaZEp7-msxNf0FKORc="
+  api:
+    build:
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: iwas-api
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: development
+      DATABASE_URL: mysql+pymysql://iwas:iwaspass@db:3306/iwas
+      JWT_SECRET_KEY: "dev-secret"
+      INTEGRATION_KEY: "-vuaWgUUjFT8PCBGVxQFZipPfvaZEp7-msxNf0FKORc="
+    ports:
+      - "5050:5050"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/docker/frontend.Dockerfile
+    container_name: iwas-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"   # frontend served from nginx on port 80
+    depends_on:
+      - api
+
   db:
     image: mysql:8.0
+    container_name: iwas-db
     restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-iwas}
-      MYSQL_USER: ${MYSQL_USER:-iwas}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-iwaspass}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: iwas
+      MYSQL_USER: iwas
+      MYSQL_PASSWORD: iwaspass
+      MYSQL_ROOT_PASSWORD: rootpass
     ports:
-      - "3306:3306"           # optional; expose if you want local DB tools
+      - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./db/sql:/docker-entrypoint-initdb.d:ro   # put 01_schema.sql, 02_seed.sql here
+      - ./db/sql:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-
 
 volumes:
   db_data:

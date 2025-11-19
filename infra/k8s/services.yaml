@@ -22,12 +22,14 @@ kind: Service
 metadata:
   name: iwas-frontend
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: iwas-frontend
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 80
+
 
 ---
 # ===================

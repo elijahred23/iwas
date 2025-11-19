@@ -86,11 +86,13 @@
 │   │       └── 02_schema.sql
 │   ├── docker
 │   │   ├── api.Dockerfile
-│   │   └── frontend.Dockerfile
+│   │   ├── frontend.Dockerfile
+│   │   └── nginx.conf
 │   ├── docker-compose.yml
 │   └── k8s
 │       ├── api-deployment.yaml
 │       ├── frontend-deployment.yaml
+│       ├── ingress.yaml
 │       ├── iwas-config.yaml
 │       ├── iwas-namespace.yaml
 │       ├── iwas-secret.yaml

@@ -14,9 +14,10 @@ spec:
     spec:
       containers:
         - name: iwas-api
-          image: elijahred23/chat-book-site-api:0.0.65
+          image: elijahred23/iwas-api:latest
+          imagePullPolicy: Always
           ports:
-            - containerPort: 5000
+            - containerPort: 5050
           envFrom:
             - configMapRef:
                 name: iwas-config

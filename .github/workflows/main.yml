@@ -27,6 +27,7 @@ jobs:
           context: .
           file: infra/docker/api.Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
@@ -38,6 +39,7 @@ jobs:
           context: .
           file: infra/docker/frontend.Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}

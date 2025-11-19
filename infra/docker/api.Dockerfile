@@ -1,13 +1,28 @@
 FROM python:3.12-slim
 
+# Prevent Python from buffering logs
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
 WORKDIR /app
 
-COPY api/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies (optional but safe)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY api .
+# Copy requirements FIRST
+COPY api/requirements.txt /app/requirements.txt
 
-ENV FLASK_APP=app/main.py
-ENV PYTHONUNBUFFERED=1
+# Install Python dependencies
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-CMD ["python", "-m", "app.main"]
+# Copy the rest of the API code
+COPY api /app
+
+# Expose API port
+EXPOSE 5050
+
+# Run the app with Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:5050", "app.main:app"]

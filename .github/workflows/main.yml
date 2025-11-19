@@ -75,12 +75,6 @@ jobs:
       - name: Fetch kubeconfig
         run: doctl kubernetes cluster kubeconfig save eli-k8s
 
-      # DEV ONLY: Reset MySQL PVC
-      - name: Reset MySQL PVC (dev environment)
-        run: |
-          echo "Deleting mysql-pvc to force re-init (dev only)..."
-          kubectl delete pvc mysql-pvc --ignore-not-found=true
-
       # Apply manifests
       - name: Apply Kubernetes manifests
         run: |

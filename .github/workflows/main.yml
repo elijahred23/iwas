@@ -2,8 +2,14 @@ name: IWAS CI/CD Pipeline
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - "main"
+      - "feature/*"
   workflow_dispatch:
+
+env:
+  NAMESPACE: iwas-${{ github.ref_name }}
+  SHA_TAG: ${{ github.sha }}
 
 jobs:
 
@@ -14,11 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Enable QEMU for cross-platform builds (required for amd64 on GH Actions)
+      # Enable QEMU for amd64 builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # Enable Buildx (required for multi-platform builds)
+      # Enable Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -35,7 +41,7 @@ jobs:
           context: .
           file: infra/docker/api.Dockerfile
           push: true
-          platforms: linux/amd64      # REQUIRED FIX
+          platforms: linux/amd64
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
@@ -47,10 +53,11 @@ jobs:
           context: .
           file: infra/docker/frontend.Dockerfile
           push: true
-          platforms: linux/amd64      # REQUIRED FIX
+          platforms: linux/amd64
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
+
 
   deploy:
     name: Deploy to Kubernetes Cluster
@@ -75,33 +82,48 @@ jobs:
       - name: Fetch kubeconfig
         run: doctl kubernetes cluster kubeconfig save eli-k8s
 
-      # Apply manifests
+      # Create namespace dynamically (per branch)
+      - name: Create or use namespace
+        run: |
+          kubectl get namespace "$NAMESPACE" || kubectl create namespace "$NAMESPACE"
+
+      # Apply manifests into branch namespace
       - name: Apply Kubernetes manifests
         run: |
-          kubectl apply -f infra/k8s/iwas-namespace.yaml
-          kubectl apply -f infra/k8s/iwas-config.yaml
-          kubectl apply -f infra/k8s/iwas-secret.yaml
+          # Shared config + secrets
+          kubectl apply -n "$NAMESPACE" -f infra/k8s/iwas-config.yaml
+          kubectl apply -n "$NAMESPACE" -f infra/k8s/iwas-secret.yaml
 
-          # MySQL
-          kubectl apply -f infra/k8s/mysql-initdb-configmap.yaml
-          kubectl apply -f infra/k8s/mysql-deployment.yaml
+          # Only deploy MySQL to production (main branch)
+          if [[ "$GITHUB_REF_NAME" == "main" ]]; then
+            kubectl apply -n "$NAMESPACE" -f infra/k8s/mysql-initdb-configmap.yaml
+            kubectl apply -n "$NAMESPACE" -f infra/k8s/mysql-deployment.yaml
+          fi
 
-          # API + Frontend
-          kubectl apply -f infra/k8s/api-deployment.yaml
-          kubectl apply -f infra/k8s/frontend-deployment.yaml
+          # API + frontend
+          kubectl apply -n "$NAMESPACE" -f infra/k8s/api-deployment.yaml
+          kubectl apply -n "$NAMESPACE" -f infra/k8s/frontend-deployment.yaml
 
           # Services
-          kubectl apply -f infra/k8s/services.yaml
+          kubectl apply -n "$NAMESPACE" -f infra/k8s/services.yaml
 
-      # Patch deployments with the exact Git SHA
-      - name: Patch deployments with latest images
+      # Patch deployments with Git SHA
+      - name: Patch deployments with Git SHA images
         run: |
-          kubectl set image deployment/iwas-api iwas-api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:${{ github.sha }}
-          kubectl set image deployment/iwas-frontend frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:${{ github.sha }}
+          kubectl set image deployment/iwas-api \
+            iwas-api=${{ secrets.DOCKERHUB_USERNAME }}/iwas-api:$SHA_TAG \
+            -n "$NAMESPACE"
 
-      # Wait for rollout success
+          kubectl set image deployment/iwas-frontend \
+            frontend=${{ secrets.DOCKERHUB_USERNAME }}/iwas-frontend:$SHA_TAG \
+            -n "$NAMESPACE"
+
+      # Wait for deployment rollout
       - name: Wait for rollout
         run: |
-          kubectl rollout status deployment/mysql --timeout=180s || true
-          kubectl rollout status deployment/iwas-api --timeout=180s
-          kubectl rollout status deployment/iwas-frontend --timeout=180s
+          if [[ "$GITHUB_REF_NAME" == "main" ]]; then
+            kubectl rollout status deployment/mysql -n "$NAMESPACE" --timeout=180s || true
+          fi
+
+          kubectl rollout status deployment/iwas-api -n "$NAMESPACE" --timeout=180s
+          kubectl rollout status deployment/iwas-frontend -n "$NAMESPACE" --timeout=180s

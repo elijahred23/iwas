@@ -20,12 +20,10 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
 
-    # CORS (still keep this — the after_request is just a safety net)
+    # CORS (allow all origins; credentials are still supported for JWT cookies)
     CORS(
         app,
-        resources={r"/api/*": {
-            "origins": ["http://localhost:5173", "http://127.0.0.1:5173"]
-        }},
+        resources={r"/api/*": {"origins": "*"}},
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -49,9 +47,8 @@ def create_app():
 
     @app.after_request
     def add_cors_headers(resp):
-        allowed = {"http://localhost:5173", "http://127.0.0.1:5173"}
         origin = request.headers.get("Origin")
-        if origin in allowed:
+        if origin:
             resp.headers["Access-Control-Allow-Origin"] = origin
             resp.headers["Vary"] = "Origin"
         resp.headers["Access-Control-Allow-Credentials"] = "true"

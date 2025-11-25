@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { TasksAPI } from '../lib/tasks';
+import { broadcastTaskChange, subscribeTaskChanges } from '../state/taskSync';
 
 export default function TaskList({ workflow }) {
   const [items, setItems] = useState([]);
@@ -9,7 +10,7 @@ export default function TaskList({ workflow }) {
   const [assignedTo, setAssignedTo] = useState('');
   const [dueDate, setDueDate] = useState(''); 
 
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true); setErr('');
     try {
       const data = await TasksAPI.list(workflow.id);
@@ -19,9 +20,16 @@ export default function TaskList({ workflow }) {
     } finally {
       setBusy(false);
     }
-  }
+  }, [workflow.id]);
 
-  useEffect(() => { load(); }, [workflow.id]);
+  useEffect(() => { load(); }, [workflow.id, load]);
+  useEffect(() => {
+    const off = subscribeTaskChanges((evt) => {
+      if (evt?.workflowId && evt.workflowId !== workflow.id) return;
+      load();
+    });
+    return off;
+  }, [workflow.id, load]);
 
   async function createTask(e) {
     e.preventDefault();
@@ -34,6 +42,7 @@ export default function TaskList({ workflow }) {
         due_date: dueDate || null,
       });
       setItems(prev => [item, ...prev]);
+      broadcastTaskChange({ action: 'created', task: item, workflowId: workflow.id });
       setName(''); setAssignedTo(''); setDueDate('');
     } catch (e) {
       setErr(e?.response?.data?.error || 'Failed to create task');
@@ -45,6 +54,7 @@ export default function TaskList({ workflow }) {
     try {
       const { item } = await TasksAPI.update(t.id, { status: next });
       setItems(prev => prev.map(x => x.id === t.id ? item : x));
+      broadcastTaskChange({ action: 'updated', task: item, workflowId: workflow.id });
     } catch (e) {
       alert(e?.response?.data?.error || 'Failed to update status');
     }
@@ -55,6 +65,7 @@ export default function TaskList({ workflow }) {
     try {
       await TasksAPI.remove(id);
       setItems(prev => prev.filter(x => x.id !== id));
+      broadcastTaskChange({ action: 'deleted', taskId: id, workflowId: workflow.id });
     } catch (e) {
       alert(e?.response?.data?.error || 'Failed to delete task');
     }

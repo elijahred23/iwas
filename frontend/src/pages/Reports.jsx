@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Section from './_scaffold.jsx';
 import { WorkflowsAPI } from '../lib/workflows';
 import { TasksAPI } from '../lib/tasks';
 import { Link } from 'react-router-dom';
+import { subscribeTaskChanges } from '../state/taskSync';
 
 function fmt(dateLike) {
   if (!dateLike) return '';
@@ -43,7 +44,7 @@ export default function Reports() {
   const [sortKey, setSortKey] = useState('created_at'); // created_at | due_date | status | workflow | name
   const [sortDir, setSortDir] = useState('desc');       // asc | desc
 
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true);
     setError('');
     try {
@@ -72,9 +73,13 @@ export default function Reports() {
     } finally {
       setBusy(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const off = subscribeTaskChanges(() => load());
+    return off;
+  }, [load]);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const filtered = useMemo(() => {

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Section from './_scaffold.jsx';
 import { api } from '../lib/api';
+import { subscribeTaskChanges } from '../state/taskSync';
 
 export default function TaskManagement() {
   const [items, setItems] = useState([]);
@@ -11,7 +12,7 @@ export default function TaskManagement() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true); setErr('');
     try {
       const url = filter ? `/tasks?status=${encodeURIComponent(filter)}` : '/tasks';
@@ -22,10 +23,14 @@ export default function TaskManagement() {
     } finally {
       setBusy(false);
     }
-  }
+  }, [filter]);
 
   // Load on mount + whenever server-side status filter changes
-  useEffect(() => { setPage(1); load(); }, [filter]);
+  useEffect(() => { setPage(1); load(); }, [filter, load]);
+  useEffect(() => {
+    const off = subscribeTaskChanges(() => load());
+    return off;
+  }, [load]);
 
   // Derived: search + local filtering (case-insensitive)
   const filtered = useMemo(() => {

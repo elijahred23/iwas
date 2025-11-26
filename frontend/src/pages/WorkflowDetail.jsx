@@ -58,8 +58,7 @@ export default function WorkflowDetail() {
     }
   }
 
-  async function toggleStatus(t) {
-    const next = t.status === 'done' ? 'pending' : 'done';
+  async function setStatus(t, next) {
     try {
       const { item } = await TasksAPI.update(t.id, { status: next });
       setItems(prev => prev.map(x => x.id === t.id ? item : x));
@@ -117,7 +116,12 @@ export default function WorkflowDetail() {
                   </div>
                 </div>
                 <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => toggleStatus(t)}>{t.status === 'done' ? 'Mark pending' : 'Mark done'}</button>
+                  <select value={t.status || 'pending'} onChange={e => setStatus(t, e.target.value)}>
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="done">Done</option>
+                    <option value="failed">Failed</option>
+                  </select>
                   <button onClick={() => removeTask(t.id)}>Delete</button>
                 </div>
               </li>

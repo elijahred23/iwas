@@ -326,6 +326,39 @@ img, svg { display: block; max-width: 100%; }
   .form-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* === Reports page layout =============================================== */
+.reports-filters {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+.reports-search { min-width: 0; }
+.reports-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.reports-actions .btn { flex: 1 1 130px; }
+@media (min-width: 1080px) {
+  .reports-filters {
+    grid-template-columns:
+      minmax(240px, 2fr)
+      minmax(140px, 1fr)
+      minmax(170px, 1fr)
+      minmax(170px, 1fr)
+      minmax(140px, 1fr)
+      minmax(140px, 1fr)
+      minmax(240px, 1.2fr);
+  }
+  .reports-actions .btn { flex: 0 0 auto; }
+}
+@media (max-width: 720px) {
+  .reports-actions { justify-content: flex-start; }
+}
+
 /* === Tables (simple) ==================================================== */
 .table {
   width: 100%;
@@ -565,4 +598,3 @@ img, svg { display: block; max-width: 100%; }
   color: #1d4ed8;
   border: 1px solid rgba(37,99,235,.18);
 }
-

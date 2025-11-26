@@ -174,8 +174,9 @@ export default function Reports() {
   return (
     <Section title="Reports" subtitle="Filter tasks across workflows and export to CSV">
       <div className="page-card" style={{ padding: 16, borderRadius: 8 }}>
-        <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 140px 160px 160px 140px 140px auto' }}>
+        <div className="reports-filters">
           <input
+            className="reports-search"
             placeholder="Search (task/workflow)"
             value={q}
             onChange={e => setQ(e.target.value)}
@@ -198,9 +199,13 @@ export default function Reports() {
           />
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
           <input type="date" value={toDate}   onChange={e => setToDate(e.target.value)} />
-          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-            <button onClick={load} disabled={busy}>{busy ? 'Refreshing…' : 'Refresh'}</button>
-            <button onClick={exportCSV} disabled={filtered.length === 0}>Export CSV</button>
+          <div className="reports-actions">
+            <button className="btn outline btn-sm" onClick={load} disabled={busy}>
+              {busy ? 'Refreshing…' : 'Refresh'}
+            </button>
+            <button className="btn btn-sm" onClick={exportCSV} disabled={filtered.length === 0}>
+              Export CSV
+            </button>
           </div>
         </div>
 

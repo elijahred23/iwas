@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS workflow_rules (
   when_name_contains VARCHAR(120),
   action_type VARCHAR(50) NOT NULL, -- set_status | assign_to | notify_slack
   action_value TEXT,
+  cron_expr VARCHAR(120),
+  last_run_at DATETIME NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_rules_workflow
     FOREIGN KEY (workflow_id) REFERENCES workflows(id)

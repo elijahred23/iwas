@@ -31,6 +31,7 @@ export default function WorkflowConfig() {
   const [ruleContains, setRuleContains] = useState('');
   const [ruleAction, setRuleAction] = useState('set_status');
   const [ruleValue, setRuleValue] = useState('');
+  const [ruleCron, setRuleCron] = useState('');
   const [ruleMsg, setRuleMsg] = useState('');
 
   // debounce search input
@@ -138,8 +139,9 @@ export default function WorkflowConfig() {
         when_name_contains: ruleContains || null,
         action_type: ruleAction,
         action_value: ruleValue || null,
+        cron_expr: ruleCron || null,
       });
-      setRuleName(''); setRuleStatus(''); setRuleContains(''); setRuleValue('');
+      setRuleName(''); setRuleStatus(''); setRuleContains(''); setRuleValue(''); setRuleCron('');
       const r = await WorkflowsAPI.listRules(selectedWf);
       setRules(r.items || []);
       setRuleMsg('Rule saved ✅');
@@ -218,6 +220,7 @@ export default function WorkflowConfig() {
             <option value="notify_slack">Action: send Slack notice</option>
           </select>
           <input className="input" placeholder="Action value (e.g., done / alex@example.com / message)" value={ruleValue} onChange={e=>setRuleValue(e.target.value)} />
+          <input className="input" placeholder="Cron (e.g., */15 * * * *) optional" value={ruleCron} onChange={e=>setRuleCron(e.target.value)} />
           <button type="submit" className=" btn-primary" disabled={!selectedWf}>Save rule</button>
         </form>
         {ruleMsg && <div style={{ marginTop:8 }}>{ruleMsg}</div>}
@@ -238,7 +241,13 @@ export default function WorkflowConfig() {
                     <div className="meta">
                       <span className="pill">{r.action_type}</span>
                       {r.action_value && <span className="pill" style={{ background:'#eef2ff' }}>{r.action_value}</span>}
+                      {r.cron_expr && <span className="pill" style={{ background:'#ecfdf3' }}>cron: {r.cron_expr}</span>}
                     </div>
+                    {r.last_run_at && (
+                      <div className="meta" style={{ marginTop:4 }}>
+                        <span className="pill">last run {r.last_run_at.slice(0,16).replace('T',' ')}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="card-row-actions">
                     <button className=" btn-danger" onClick={() => deleteRule(r.id)}>Delete</button>

@@ -103,6 +103,8 @@ class WorkflowRule(db.Model):
     when_name_contains = db.Column(db.String(120))
     action_type = db.Column(db.String(50), nullable=False)  # set_status | assign_to | notify_slack
     action_value = db.Column(db.Text)  # status value, assignee, or slack message
+    cron_expr = db.Column(db.String(120))  # e.g., "*/15 * * * *"
+    last_run_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, server_default=db.func.current_timestamp())
 
     workflow = db.relationship("Workflow", backref=db.backref("rules", cascade="all, delete-orphan"))
@@ -116,6 +118,8 @@ class WorkflowRule(db.Model):
             "when_name_contains": self.when_name_contains,
             "action_type": self.action_type,
             "action_value": self.action_value,
+            "cron_expr": self.cron_expr,
+            "last_run_at": self.last_run_at.isoformat() if self.last_run_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 def _fernet():

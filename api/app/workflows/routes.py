@@ -1,5 +1,6 @@
-from datetime import date
-from flask import Blueprint, request, jsonify
+import os
+from datetime import date, datetime
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 
@@ -34,12 +35,12 @@ def _notify(user_id: int, text: str) -> None:
         # current_app.logger.exception("Slack notify failed")
         pass
 
-def _apply_rules(task: Task, event: str = "updated") -> list[str]:
+def _apply_rules(task: Task, event: str = "updated", rules: list[WorkflowRule] | None = None) -> list[str]:
     """
     Evaluate workflow rules for a task. Returns list of actions applied.
     """
     actions_applied: list[str] = []
-    rules = WorkflowRule.query.filter_by(workflow_id=task.workflow_id).all()
+    rules = rules or WorkflowRule.query.filter_by(workflow_id=task.workflow_id).all()
     if not rules:
         return actions_applied
 
@@ -296,6 +297,84 @@ def delete_rule(rule_id):
     db.session.delete(rule)
     db.session.commit()
     return jsonify({"ok": True, "deleted": rule_id}), 200
+
+
+def _cron_matches(expr: str, now: datetime) -> bool:
+    """
+    Minimal cron matcher: "m h dom mon dow", supports "*", "*/n", "a,b" and single ints.
+    """
+    try:
+        parts = (expr or "").split()
+        if len(parts) != 5:
+            return False
+        minute, hour, dom, mon, dow = parts
+        fields = [
+            (minute, now.minute, 0, 59),
+            (hour, now.hour, 0, 23),
+            (dom, now.day, 1, 31),
+            (mon, now.month, 1, 12),
+            (dow, now.weekday(), 0, 6),  # Monday=0
+        ]
+        for raw, val, lo, hi in fields:
+            if not _cron_field_matches(raw, val, lo, hi):
+                return False
+        return True
+    except Exception:
+        return False
+
+def _cron_field_matches(field: str, value: int, lo: int, hi: int) -> bool:
+    field = field.strip()
+    if field == "*":
+        return True
+    if field.startswith("*/"):
+        try:
+            step = int(field[2:])
+            return step > 0 and (value - lo) % step == 0
+        except ValueError:
+            return False
+    if "," in field:
+        return any(_cron_field_matches(part, value, lo, hi) for part in field.split(","))
+    try:
+        num = int(field)
+        return lo <= num <= hi and num == value
+    except ValueError:
+        return False
+
+
+@workflows_bp.post("/rules/run-scheduled")
+def run_scheduled_rules():
+    """
+    Trigger cron-based rules. Protect with RULES_CRON_SECRET; intended for an external CronJob.
+    """
+    secret = os.environ.get("RULES_CRON_SECRET")
+    provided = request.args.get("secret") or request.headers.get("X-Cron-Secret")
+    if not secret:
+        return jsonify({"ok": False, "error": "RULES_CRON_SECRET not set"}), 400
+    if secret != provided:
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+
+    now = datetime.utcnow().replace(second=0, microsecond=0)
+    rules = WorkflowRule.query.filter(WorkflowRule.cron_expr.isnot(None)).all()
+
+    applied = 0
+    scanned = 0
+    for rule in rules:
+        if not _cron_matches(rule.cron_expr or "", now):
+            continue
+        if rule.last_run_at and rule.last_run_at.replace(second=0, microsecond=0) == now:
+            continue  # already ran this minute
+
+        tasks = Task.query.filter_by(workflow_id=rule.workflow_id).all()
+        for t in tasks:
+            scanned += 1
+            acts = _apply_rules(t, event="scheduled", rules=[rule])
+            if acts:
+                applied += 1
+        rule.last_run_at = now
+    db.session.commit()
+
+    current_app.logger.info("Scheduled rules run", extra={"matched_rules": len(rules), "tasks_scanned": scanned, "actions_applied": applied})
+    return jsonify({"ok": True, "matched_rules": len(rules), "tasks_scanned": scanned, "actions_applied": applied}), 200
 
 
 @workflows_bp.post("/<int:wf_id>/tasks")

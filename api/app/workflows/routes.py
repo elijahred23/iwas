@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 
 from ..extensions import db
-from ..models import User, Workflow, Task, Log
+from ..models import User, Workflow, Task, Log, WorkflowRule
 from ..integrations.slack import send_slack
 
 workflows_bp = Blueprint("workflows", __name__)
@@ -33,6 +33,40 @@ def _notify(user_id: int, text: str) -> None:
         # You could add logging here if you want:
         # current_app.logger.exception("Slack notify failed")
         pass
+
+def _apply_rules(task: Task, event: str = "updated") -> list[str]:
+    """
+    Evaluate workflow rules for a task. Returns list of actions applied.
+    """
+    actions_applied: list[str] = []
+    rules = WorkflowRule.query.filter_by(workflow_id=task.workflow_id).all()
+    if not rules:
+        return actions_applied
+
+    for rule in rules:
+        # --- conditions ---
+        if rule.when_status and (task.status or "").lower() != rule.when_status.lower():
+            continue
+        if rule.when_name_contains and rule.when_name_contains.lower() not in (task.name or "").lower():
+            continue
+
+        # --- actions ---
+        if rule.action_type == "set_status" and rule.action_value:
+            old = task.status
+            task.status = rule.action_value
+            actions_applied.append(f"rule[{rule.name}]: status {old}->{task.status}")
+        elif rule.action_type == "assign_to" and rule.action_value:
+            old = task.assigned_to
+            task.assigned_to = rule.action_value
+            actions_applied.append(f"rule[{rule.name}]: assigned_to {old}->{task.assigned_to}")
+        elif rule.action_type == "notify_slack":
+            msg = rule.action_value or f"Rule '{rule.name}' matched on task #{task.id}"
+            _notify(task.workflow.user_id, f":robot_face: {msg} • Task “{task.name}” (#{task.id}) [{event}]")
+            actions_applied.append(f"rule[{rule.name}]: notified slack")
+
+    if actions_applied:
+        db.session.add(Log(task_id=task.id, event="; ".join(actions_applied), status=task.status))
+    return actions_applied
 
 # ---------- workflows CRUD ----------
 
@@ -196,6 +230,74 @@ def list_tasks(wf_id):
     return jsonify({"ok": True, "items": [t.to_public() for t in tasks]}), 200
 
 
+@workflows_bp.get("/<int:wf_id>/rules")
+@jwt_required()
+def list_rules(wf_id):
+    user = _current_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    wf = Workflow.query.get_or_404(wf_id)
+    if not (_is_admin(user) or wf.user_id == user.id):
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+
+    rules = WorkflowRule.query.filter_by(workflow_id=wf_id).order_by(WorkflowRule.id.desc()).all()
+    return jsonify({"ok": True, "items": [r.to_public() for r in rules]}), 200
+
+
+@workflows_bp.post("/<int:wf_id>/rules")
+@jwt_required()
+def create_rule(wf_id):
+    user = _current_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    wf = Workflow.query.get_or_404(wf_id)
+    if not (_is_admin(user) or wf.user_id == user.id):
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    when_status = (data.get("when_status") or "").strip() or None
+    when_name_contains = (data.get("when_name_contains") or "").strip() or None
+    action_type = (data.get("action_type") or "").strip()
+    action_value = (data.get("action_value") or "").strip() or None
+
+    if not name:
+        return jsonify({"ok": False, "error": "name is required"}), 422
+    if action_type not in ("set_status", "assign_to", "notify_slack"):
+        return jsonify({"ok": False, "error": "action_type must be set_status | assign_to | notify_slack"}), 422
+
+    rule = WorkflowRule(
+        workflow_id=wf_id,
+        name=name,
+        when_status=when_status,
+        when_name_contains=when_name_contains,
+        action_type=action_type,
+        action_value=action_value,
+    )
+    db.session.add(rule)
+    db.session.commit()
+
+    return jsonify({"ok": True, "item": rule.to_public()}), 201
+
+
+@workflows_bp.delete("/rules/<int:rule_id>")
+@jwt_required()
+def delete_rule(rule_id):
+    user = _current_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    rule = WorkflowRule.query.get_or_404(rule_id)
+    if not (_is_admin(user) or rule.workflow.user_id == user.id):
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+
+    db.session.delete(rule)
+    db.session.commit()
+    return jsonify({"ok": True, "deleted": rule_id}), 200
+
+
 @workflows_bp.post("/<int:wf_id>/tasks")
 @jwt_required()
 def create_task(wf_id):
@@ -227,6 +329,7 @@ def create_task(wf_id):
     db.session.add(t)
     db.session.flush()  # get t.id
     db.session.add(Log(task_id=t.id, event="created", status=t.status))
+    _apply_rules(t, event="created")
     db.session.commit()
 
     # Slack: task created
@@ -284,6 +387,7 @@ def update_task(task_id):
     changes = ", ".join(f"{k}: '{before[k]}'→'{after[k]}'" for k in before if before[k] != after[k]) or "updated"
 
     db.session.add(Log(task_id=t.id, event=changes, status=t.status))
+    _apply_rules(t, event="updated")
     db.session.commit()
 
     # Slack: task updated

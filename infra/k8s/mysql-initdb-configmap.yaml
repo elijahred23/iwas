@@ -58,6 +58,20 @@ data:
         ON DELETE CASCADE
     ) ENGINE=InnoDB;
 
+    CREATE TABLE IF NOT EXISTS workflow_rules (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      workflow_id INT NOT NULL,
+      name VARCHAR(120) NOT NULL,
+      when_status VARCHAR(50),
+      when_name_contains VARCHAR(120),
+      action_type VARCHAR(50) NOT NULL, -- set_status | assign_to | notify_slack
+      action_value TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_rules_workflow
+        FOREIGN KEY (workflow_id) REFERENCES workflows(id)
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB;
+
   02_seed.sql: |
     -- === Vars ===
     SET @ADMIN_EMAIL := 'elijah@example.com';

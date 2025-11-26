@@ -92,6 +92,32 @@ class Log(db.Model):
             "event": self.event,
             "status": self.status,
         }
+
+class WorkflowRule(db.Model):
+    __tablename__ = "workflow_rules"
+
+    id = db.Column(db.Integer, primary_key=True)
+    workflow_id = db.Column(db.Integer, db.ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    when_status = db.Column(db.String(50))
+    when_name_contains = db.Column(db.String(120))
+    action_type = db.Column(db.String(50), nullable=False)  # set_status | assign_to | notify_slack
+    action_value = db.Column(db.Text)  # status value, assignee, or slack message
+    created_at = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+
+    workflow = db.relationship("Workflow", backref=db.backref("rules", cascade="all, delete-orphan"))
+
+    def to_public(self):
+        return {
+            "id": self.id,
+            "workflow_id": self.workflow_id,
+            "name": self.name,
+            "when_status": self.when_status,
+            "when_name_contains": self.when_name_contains,
+            "action_type": self.action_type,
+            "action_value": self.action_value,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 def _fernet():
     key = os.environ.get("INTEGRATION_KEY")
     if not key:

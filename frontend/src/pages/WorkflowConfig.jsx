@@ -23,6 +23,16 @@ export default function WorkflowConfig() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState('created_desc'); // UI sort; server still sorts by id asc
 
+  // automation rules
+  const [selectedWf, setSelectedWf] = useState('');
+  const [rules, setRules] = useState([]);
+  const [ruleName, setRuleName] = useState('');
+  const [ruleStatus, setRuleStatus] = useState('');
+  const [ruleContains, setRuleContains] = useState('');
+  const [ruleAction, setRuleAction] = useState('set_status');
+  const [ruleValue, setRuleValue] = useState('');
+  const [ruleMsg, setRuleMsg] = useState('');
+
   // debounce search input
   useEffect(() => {
     const t = setTimeout(() => {
@@ -42,6 +52,9 @@ export default function WorkflowConfig() {
       });
       setItems(data.items || []);
       setTotal(data.total ?? (data.items?.length || 0));
+      if (!selectedWf && (data.items || []).length) {
+        setSelectedWf(String(data.items[0].id));
+      }
     } catch (e) {
       setErr(e?.response?.data?.error || 'Failed to load workflows');
     } finally {
@@ -50,6 +63,18 @@ export default function WorkflowConfig() {
   }
 
   useEffect(() => { load(); }, [query, page]);
+
+  useEffect(() => {
+    if (!selectedWf) return;
+    (async () => {
+      try {
+        const r = await WorkflowsAPI.listRules(selectedWf);
+        setRules(r.items || []);
+      } catch (e) {
+        setRuleMsg(e?.response?.data?.error || 'Failed to load rules');
+      }
+    })();
+  }, [selectedWf]);
 
   // client-side sort for display (name/date)
   const sorted = useMemo(() => {
@@ -99,6 +124,40 @@ export default function WorkflowConfig() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  async function addRule(e) {
+    e.preventDefault();
+    setRuleMsg('');
+    if (!selectedWf) {
+      setRuleMsg('Select a workflow first');
+      return;
+    }
+    try {
+      await WorkflowsAPI.createRule(selectedWf, {
+        name: ruleName,
+        when_status: ruleStatus || null,
+        when_name_contains: ruleContains || null,
+        action_type: ruleAction,
+        action_value: ruleValue || null,
+      });
+      setRuleName(''); setRuleStatus(''); setRuleContains(''); setRuleValue('');
+      const r = await WorkflowsAPI.listRules(selectedWf);
+      setRules(r.items || []);
+      setRuleMsg('Rule saved ✅');
+    } catch (e) {
+      setRuleMsg(e?.response?.data?.error || 'Failed to save rule');
+    }
+  }
+
+  async function deleteRule(id) {
+    if (!confirm('Delete this rule?')) return;
+    try {
+      await WorkflowsAPI.deleteRule(id);
+      setRules(rules.filter(r => r.id !== id));
+    } catch (e) {
+      setRuleMsg(e?.response?.data?.error || 'Delete failed');
+    }
+  }
+
   return (
     <Section title="Workflow Configuration" subtitle="Manage your workflows and automation settings">
 {/* Create */}
@@ -128,6 +187,68 @@ export default function WorkflowConfig() {
       </div>
 
       {err && <div style={{ color:'crimson', marginTop:12 }}>{err}</div>}
+
+      {/* Automation rules */}
+      <div className="page-card" style={{ padding:16, borderRadius:12, marginTop:12, marginBottom:16 }}>
+        <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap', marginBottom:8 }}>
+          <h3 style={{ margin:0 }}>Automation rules</h3>
+          <select
+            className="input input-sm"
+            value={selectedWf}
+            onChange={e => setSelectedWf(e.target.value)}
+            style={{ maxWidth:240 }}
+          >
+            <option value="">Select workflow…</option>
+            {items.map(w => (
+              <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
+          </select>
+          <span style={{ fontSize:13, color:'#6b7280' }}>
+            Trigger automatic actions when conditions match.
+          </span>
+        </div>
+
+        <form onSubmit={addRule} style={{ display:'grid', gap:10, gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))' }}>
+          <input className="input" placeholder="Rule name" value={ruleName} onChange={e=>setRuleName(e.target.value)} required />
+          <input className="input" placeholder="When status equals (optional)" value={ruleStatus} onChange={e=>setRuleStatus(e.target.value)} />
+          <input className="input" placeholder="When task name contains (optional)" value={ruleContains} onChange={e=>setRuleContains(e.target.value)} />
+          <select className="input" value={ruleAction} onChange={e=>setRuleAction(e.target.value)}>
+            <option value="set_status">Action: set status</option>
+            <option value="assign_to">Action: assign to</option>
+            <option value="notify_slack">Action: send Slack notice</option>
+          </select>
+          <input className="input" placeholder="Action value (e.g., done / alex@example.com / message)" value={ruleValue} onChange={e=>setRuleValue(e.target.value)} />
+          <button type="submit" className=" btn-primary" disabled={!selectedWf}>Save rule</button>
+        </form>
+        {ruleMsg && <div style={{ marginTop:8 }}>{ruleMsg}</div>}
+
+        <div style={{ marginTop:12 }}>
+          {rules.length === 0 ? (
+            <div style={{ opacity:0.7 }}>No rules yet.</div>
+          ) : (
+            <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
+              {rules.map(r => (
+                <li key={r.id} className="card-row">
+                  <div className="card-row-main">
+                    <div className="card-title">{r.name}</div>
+                    <div className="card-subtitle">
+                      {r.when_status ? `status=${r.when_status}` : 'any status'}
+                      {r.when_name_contains ? ` • name contains “${r.when_name_contains}”` : ''}
+                    </div>
+                    <div className="meta">
+                      <span className="pill">{r.action_type}</span>
+                      {r.action_value && <span className="pill" style={{ background:'#eef2ff' }}>{r.action_value}</span>}
+                    </div>
+                  </div>
+                  <div className="card-row-actions">
+                    <button className=" btn-danger" onClick={() => deleteRule(r.id)}>Delete</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
 
 
       {/* Toolbar */}

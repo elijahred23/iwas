@@ -25,5 +25,18 @@ export const WorkflowsAPI = {
     const { data } = await api.delete(`/workflows/${id}`);
     return data;
   },
-};
 
+  // Automation rules
+  listRules: async (workflowId) => {
+    const { data } = await api.get(`/workflows/${workflowId}/rules`);
+    return data;
+  },
+  createRule: async (workflowId, payload) => {
+    const { data } = await api.post(`/workflows/${workflowId}/rules`, payload);
+    return data;
+  },
+  deleteRule: async (ruleId) => {
+    const { data } = await api.delete(`/workflows/rules/${ruleId}`);
+    return data;
+  },
+};

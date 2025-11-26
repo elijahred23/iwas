@@ -16,6 +16,10 @@ export const AuthAPI = {
     const { data } = await api.patch(`/auth/users/${userId}/role`, { role });
     return data;
   },
+  listLoginAttempts: async (limit = 200) => {
+    const { data } = await api.get('/auth/login-attempts', { params: { limit } });
+    return data;
+  },
 };
 
 export function AuthProvider({ children }) {

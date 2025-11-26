@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Section from './_scaffold.jsx';
 import { api } from '../lib/api';
+import { AuthAPI, useCan } from '../state/auth.jsx';
 
 function fmt(ts) {
   if (!ts) return '';
@@ -10,11 +11,13 @@ function fmt(ts) {
 
 export default function Logs() {
   const [items, setItems] = useState([]);
+  const [loginAttempts, setLoginAttempts] = useState([]);
   const [err, setErr] = useState('');
   const [sortBy, setSortBy] = useState('timestamp'); // 'timestamp' | 'workflow' | 'status'
   const [sortDir, setSortDir] = useState('desc');     // 'asc' | 'desc'
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);       // 25 / 50 / 100
+  const canSeeAttempts = useCan(['admin']);
 
   useEffect(() => {
     (async () => {
@@ -24,11 +27,15 @@ export default function Logs() {
         setItems(res.data.items || []);
         setErr('');
         setPage(1);
+        if (canSeeAttempts) {
+          const a = await AuthAPI.listLoginAttempts(200);
+          setLoginAttempts(a.items || []);
+        }
       } catch (e) {
         setErr(e?.response?.data?.error || 'Failed to load');
       }
     })();
-  }, []);
+  }, [canSeeAttempts]);
 
   // sorting
   const sorted = useMemo(() => {
@@ -122,6 +129,44 @@ export default function Logs() {
           <div style={{ opacity:.8 }}>Page {page} of {totalPages}</div>
           <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page>=totalPages}>Next ›</button>
           <button onClick={()=>setPage(totalPages)} disabled={page>=totalPages}>Last »</button>
+        </div>
+      )}
+
+      {canSeeAttempts && (
+        <div className="page-card" style={{ marginTop:16, padding:12, borderRadius:10 }}>
+          <h3 style={{ marginTop:0 }}>Login attempts (last {loginAttempts.length})</h3>
+          {loginAttempts.length === 0 ? (
+            <div style={{ opacity:0.7 }}>No login attempts yet.</div>
+          ) : (
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                <thead>
+                  <tr style={{ background:'#fafafa' }}>
+                    <th align="left" style={{ padding:'8px 6px', borderBottom:'1px solid #eee' }}>Time</th>
+                    <th align="left" style={{ padding:'8px 6px', borderBottom:'1px solid #eee' }}>Email</th>
+                    <th style={{ padding:'8px 6px', borderBottom:'1px solid #eee' }}>IP</th>
+                    <th style={{ padding:'8px 6px', borderBottom:'1px solid #eee' }}>Success</th>
+                    <th align="left" style={{ padding:'8px 6px', borderBottom:'1px solid #eee' }}>User Agent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loginAttempts.map(a => (
+                    <tr key={a.id} style={{ borderTop:'1px solid #f0f0f0' }}>
+                      <td style={{ padding:'8px 6px' }}>{fmt(a.timestamp)}</td>
+                      <td style={{ padding:'8px 6px' }}>{a.email}</td>
+                      <td style={{ padding:'8px 6px', textAlign:'center' }}>{a.ip || '—'}</td>
+                      <td style={{ padding:'8px 6px', textAlign:'center', color: a.success ? 'seagreen' : 'crimson' }}>
+                        {a.success ? 'yes' : 'no'}
+                      </td>
+                      <td style={{ padding:'8px 6px', maxWidth:320, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {a.user_agent || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </Section>

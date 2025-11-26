@@ -10,7 +10,7 @@ from flask_jwt_extended import (
 )
 from sqlalchemy import func
 from ..extensions import db
-from ..models import User
+from ..models import User, LoginAttempt
 from werkzeug.security import generate_password_hash
 
 auth_bp = Blueprint("auth", __name__)
@@ -63,6 +63,8 @@ def login():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    ua = request.headers.get("User-Agent", "")[:295]
 
     if not email or not password:
         return _json_error("email and password are required", 422)
@@ -71,11 +73,23 @@ def login():
     user = User.query.filter(func.lower(User.email) == email).first()
 
     if not user or not user.check_password(password):
+        # log failed attempt
+        try:
+          db.session.add(LoginAttempt(email=email or "unknown", success=False, ip=ip, user_agent=ua))
+          db.session.commit()
+        except Exception:
+          db.session.rollback()
         return _json_error("Invalid credentials", 401)
 
     # NOTE: identity must be a string to satisfy JWT "sub" requirements
     access = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
     refresh = create_refresh_token(identity=str(user.id))
+
+    try:
+      db.session.add(LoginAttempt(email=email, success=True, ip=ip, user_agent=ua))
+      db.session.commit()
+    except Exception:
+      db.session.rollback()
 
     resp = jsonify({"ok": True, "user": user.to_public()})
     set_access_cookies(resp, access)     # sets HttpOnly access cookie (+ csrf cookie if enabled)
@@ -126,6 +140,18 @@ def list_users():
         "count": len(users),
         "users": [u.to_public() for u in users]
     }), 200
+
+
+@auth_bp.get("/login-attempts")
+@jwt_required()
+def login_attempts():
+    user = _current_user()
+    if not user or user.role != "admin":
+        return _json_error("Forbidden", 403)
+
+    limit = max(1, min(int(request.args.get("limit", 200)), 500))
+    rows = LoginAttempt.query.order_by(LoginAttempt.id.desc()).limit(limit).all()
+    return jsonify({"ok": True, "items": [r.to_public() for r in rows]})
 
 
 @auth_bp.patch("/users/<int:uid>/role")

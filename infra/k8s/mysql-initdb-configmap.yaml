@@ -60,6 +60,15 @@ data:
         ON DELETE CASCADE
     ) ENGINE=InnoDB;
 
+    CREATE TABLE IF NOT EXISTS login_attempts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      email VARCHAR(200) NOT NULL,
+      success BOOLEAN DEFAULT FALSE,
+      ip VARCHAR(64),
+      user_agent VARCHAR(300),
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB;
+
     CREATE TABLE IF NOT EXISTS workflow_rules (
       id INT AUTO_INCREMENT PRIMARY KEY,
       workflow_id INT NOT NULL,

@@ -243,3 +243,24 @@ class Integration(db.Model):
         except Exception:
             data = {}
         return data.get("jira") or {}
+
+
+class LoginAttempt(db.Model):
+    __tablename__ = "login_attempts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(200), nullable=False)
+    success = db.Column(db.Boolean, default=False)
+    ip = db.Column(db.String(64))
+    user_agent = db.Column(db.String(300))
+    timestamp = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+
+    def to_public(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "success": self.success,
+            "ip": self.ip,
+            "user_agent": self.user_agent,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+        }

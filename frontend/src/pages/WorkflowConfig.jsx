@@ -243,32 +243,36 @@ export default function WorkflowConfig() {
           {rules.length === 0 ? (
             <div style={{ opacity:0.7 }}>No rules yet.</div>
           ) : (
-            <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:8 }}>
+            <div style={{ display:'grid', gap:10 }}>
               {rules.map(r => (
-                <li key={r.id} className="card-row">
-                  <div className="card-row-main">
-                    <div className="card-title">{r.name}</div>
-                    <div className="card-subtitle">
-                      {r.when_status ? `status=${r.when_status}` : 'any status'}
-                      {r.when_name_contains ? ` • name contains “${r.when_name_contains}”` : ''}
-                    </div>
-                    <div className="meta">
-                      <span className="pill">{r.action_type}</span>
-                      {r.action_value && <span className="pill" style={{ background:'#eef2ff' }}>{r.action_value}</span>}
-                      {r.cron_expr && <span className="pill" style={{ background:'#ecfdf3' }}>cron: {r.cron_expr}</span>}
-                    </div>
-                    {r.last_run_at && (
-                      <div className="meta" style={{ marginTop:4 }}>
-                        <span className="pill">last run {r.last_run_at.slice(0,16).replace('T',' ')}</span>
+                <div key={r.id} style={{
+                  border:'1px solid #e5e7eb',
+                  borderRadius:10,
+                  padding:'12px 12px',
+                  background:'#fff',
+                  boxShadow:'0 1px 2px rgba(0,0,0,.04)'
+                }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', gap:10, alignItems:'flex-start', flexWrap:'wrap' }}>
+                    <div style={{ minWidth:0, flex:1 }}>
+                      <div style={{ fontWeight:700, fontSize:16, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis' }}>{r.name}</div>
+                      <div style={{ color:'#6b7280', fontSize:13, marginBottom:6 }}>
+                        {r.when_status ? `status = ${r.when_status}` : 'any status'}
+                        {r.when_name_contains ? ` • name contains “${r.when_name_contains}”` : ''}
                       </div>
-                    )}
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        <span className="pill">{r.action_type}</span>
+                        {r.action_value && <span className="pill" style={{ background:'#eef2ff' }}>{r.action_value}</span>}
+                        {r.cron_expr && <span className="pill" style={{ background:'#ecfdf3' }}>cron: {r.cron_expr}</span>}
+                        {r.last_run_at && <span className="pill">last run {r.last_run_at.slice(0,16).replace('T',' ')}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button className=" btn-danger" onClick={() => deleteRule(r.id)}>Delete</button>
+                    </div>
                   </div>
-                  <div className="card-row-actions">
-                    <button className=" btn-danger" onClick={() => deleteRule(r.id)}>Delete</button>
-                  </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </div>

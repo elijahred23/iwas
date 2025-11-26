@@ -120,6 +120,8 @@ export default function Integrations() {
   const [jiraSummary, setJiraSummary] = useState('');
   const [jiraDescription, setJiraDescription] = useState('');
   const [jiraType, setJiraType] = useState('Task');
+  const [jiraHook, setJiraHook] = useState(null);
+  const [jiraHookMsg, setJiraHookMsg] = useState('');
 
   async function saveJira(e) {
     e.preventDefault();
@@ -171,6 +173,41 @@ export default function Integrations() {
       setJiraMsg(e?.response?.data?.error || 'Create failed');
     }
   }
+  async function loadJiraWebhook() {
+    setJiraHookMsg('');
+    try {
+      const r = await IntegrationsAPI.jiraWebhookInfo();
+      setJiraHook(r);
+      setJiraHookMsg('Webhook ready ✅');
+    } catch (e) {
+      setJiraHookMsg(e?.response?.data?.error || 'Failed to load webhook');
+    }
+  }
+  async function rotateJiraWebhook() {
+    setJiraHookMsg('');
+    try {
+      const r = await IntegrationsAPI.rotateJiraWebhook();
+      setJiraHook(r);
+      setJiraHookMsg('Secret rotated ✅ Update Jira with the new URL.');
+    } catch (e) {
+      setJiraHookMsg(e?.response?.data?.error || 'Rotation failed');
+    }
+  }
+  async function copyWebhook() {
+    if (!jiraHook?.webhook_url) return;
+    try {
+      await navigator.clipboard.writeText(jiraHook.webhook_url);
+      setJiraHookMsg('Copied to clipboard ✅');
+    } catch (err) {
+      setJiraHookMsg('Copy failed');
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 'jira' && !jiraHook) {
+      loadJiraWebhook();
+    }
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- UI ----------
   return (
@@ -303,6 +340,25 @@ export default function Integrations() {
           </form>
 
           {jiraMsg && <div style={{ marginTop:8 }}>{jiraMsg}</div>}
+
+          <div style={{ marginTop:12, padding:12, border:'1px solid #e5e7eb', borderRadius:8, background:'#f8fafc' }}>
+            <div style={{ fontWeight:600, marginBottom:6 }}>Slack notifications for Jira</div>
+            <p style={{ margin:'4px 0 10px', color:'#475467', fontSize:14 }}>
+              Drop this webhook URL into your Jira project webhooks. We&apos;ll push created/updated/closed events to your Slack webhook.
+            </p>
+            <div style={{ display:'grid', gap:8, gridTemplateColumns:'1fr auto auto', alignItems:'center' }}>
+              <input readOnly value={jiraHook?.webhook_url || ''} style={{ width:'100%' }} />
+              <button type="button" onClick={copyWebhook} disabled={!jiraHook?.webhook_url}>Copy</button>
+              <button type="button" onClick={rotateJiraWebhook}>Rotate secret</button>
+            </div>
+            <div style={{ marginTop:6, display:'flex', gap:8, flexWrap:'wrap' }}>
+              <button type="button" onClick={loadJiraWebhook}>Refresh webhook</button>
+              {!jiraHook?.slack_configured && (
+                <span style={{ fontSize:13, color:'#b45309' }}>Slack webhook not set yet — configure on the Slack tab.</span>
+              )}
+            </div>
+            {jiraHookMsg && <div style={{ marginTop:6 }}>{jiraHookMsg}</div>}
+          </div>
 
           <div style={{ marginTop:12 }}>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>

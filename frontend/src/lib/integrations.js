@@ -48,4 +48,10 @@ export const IntegrationsAPI = {
     // falls back to default_project stored on the server
     return api.post('/integrations/jira/issues', { summary, description, issuetype }).then(r => r.data);
   },
+  jiraWebhookInfo() {
+    return api.get('/integrations/jira/webhook/info').then(r => r.data);
+  },
+  rotateJiraWebhook() {
+    return api.post('/integrations/jira/webhook/rotate').then(r => r.data);
+  },
 };

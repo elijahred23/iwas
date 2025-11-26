@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import secrets
+from datetime import datetime, timezone
 from typing import Dict, Any, Tuple, Optional
 from urllib.parse import quote
 
@@ -11,6 +13,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from ..extensions import db
 from ..models import User, Integration
+from .slack import send_slack, get_slack_webhook
 
 jira_bp = Blueprint("jira", __name__)
 
@@ -116,6 +119,58 @@ def _create_issue(base: str, auth: HTTPBasicAuth, project_key: str,
         raise RuntimeError(_error_from_response(r))
     return r.json()
 
+def _ensure_webhook_secret(creds: Dict[str, Any]) -> bool:
+    """
+    Ensure we have a per-user webhook secret.
+    Returns True if we mutated creds.
+    """
+    if creds.get("webhook_secret"):
+        return False
+    creds["webhook_secret"] = secrets.token_urlsafe(24)
+    return True
+
+def _build_webhook_url(user_id: int, secret: str) -> str:
+    base = (request.url_root or "").rstrip("/")
+    return f"{base}/api/integrations/jira/webhook/{user_id}?secret={secret}"
+
+def _format_webhook_message(creds: Dict[str, Any], payload: Dict[str, Any]) -> str:
+    issue = payload.get("issue") or {}
+    fields = issue.get("fields") or {}
+    key = issue.get("key") or issue.get("id") or "ticket"
+    summary = fields.get("summary") or "(no summary)"
+    status = (fields.get("status") or {}).get("name")
+    who = (payload.get("user") or {}).get("displayName") or "Someone"
+    event = (payload.get("issue_event_type_name") or payload.get("webhookEvent") or "").lower()
+    action = {
+        "issue_created": "created",
+        "issue_updated": "updated",
+        "issue_deleted": "deleted",
+        "comment_created": "commented",
+    }.get(event, event.replace("_", " ") or "updated")
+
+    when_ms = payload.get("timestamp")
+    when_str = None
+    if when_ms:
+        try:
+            when_dt = datetime.fromtimestamp(when_ms / 1000, tz=timezone.utc)
+            when_str = when_dt.strftime("%Y-%m-%d %H:%M %Z")
+        except Exception:
+            when_str = None
+
+    base_url = (creds.get("base_url") or "").rstrip("/")
+    browse_url = f"{base_url}/browse/{key}" if base_url and key else None
+
+    lines = [
+        f":bell: Jira ticket *{key}* {action}",
+        f"*Title:* {summary}",
+    ]
+    if status:
+        lines.append(f"*Status:* {status}")
+    lines.append(f"*By:* {who}" + (f" at {when_str}" if when_str else ""))
+    if browse_url:
+        lines.append(f"*Link:* {browse_url}")
+    return "\n".join(lines)
+
 # ---------- routes ----------
 
 @jira_bp.post("/jira")
@@ -147,6 +202,7 @@ def save_jira():
         "api_token": api_token,
         "default_project": default_project,
     })
+    _ensure_webhook_secret(creds)
     _save_creds(integ, creds)
 
     return jsonify({
@@ -317,3 +373,81 @@ def create_issue_default():
         "issue": {"id": issue.get("id"), "key": issue.get("key"), "self": issue.get("self")}
     }), 201
 
+
+@jira_bp.get("/jira/webhook/info")
+@jwt_required()
+def webhook_info():
+    """Return the webhook URL + secret the user should configure in Jira."""
+    uid = _uid()
+    if not uid:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    integ = _get_or_create_integration(uid, "jira")
+    creds = _load_creds(integ)
+    changed = _ensure_webhook_secret(creds)
+    if changed:
+        _save_creds(integ, creds)
+
+    secret = creds.get("webhook_secret")
+    slack_ok = bool(get_slack_webhook(uid))
+    return jsonify({
+        "ok": True,
+        "webhook_url": _build_webhook_url(uid, secret),
+        "secret": secret,
+        "slack_configured": slack_ok,
+    }), 200
+
+
+@jira_bp.post("/jira/webhook/rotate")
+@jwt_required()
+def rotate_webhook_secret():
+    """Rotate the webhook secret and return the fresh URL."""
+    uid = _uid()
+    if not uid:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    integ = _get_or_create_integration(uid, "jira")
+    creds = _load_creds(integ)
+    creds["webhook_secret"] = secrets.token_urlsafe(24)
+    _save_creds(integ, creds)
+
+    secret = creds.get("webhook_secret")
+    slack_ok = bool(get_slack_webhook(uid))
+    return jsonify({
+        "ok": True,
+        "webhook_url": _build_webhook_url(uid, secret),
+        "secret": secret,
+        "slack_configured": slack_ok,
+    }), 200
+
+
+@jira_bp.post("/jira/webhook/<int:user_id>")
+def receive_webhook(user_id: int):
+    """
+    Jira webhook receiver. Expects ?secret=... (or X-Jira-Secret header)
+    and forwards key details to the user's Slack webhook.
+    """
+    integ = Integration.query.filter_by(user_id=user_id, type="jira").first()
+    if not integ:
+        return jsonify({"ok": False, "error": "No Jira integration for user"}), 404
+
+    creds = _load_creds(integ)
+    expected = creds.get("webhook_secret")
+    provided = request.args.get("secret") or request.headers.get("X-Jira-Secret")
+    if not expected or expected != provided:
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+
+    payload = request.get_json(silent=True) or {}
+    text = _format_webhook_message(creds, payload)
+
+    slack_status = None
+    try:
+        slack_status = send_slack(user_id, text)
+    except Exception:
+        slack_status = None
+
+    return jsonify({
+        "ok": True,
+        "sent_to_slack": slack_status is not None,
+        "slack_status": slack_status,
+    }), 200

@@ -78,19 +78,24 @@ class Log(db.Model):
     __tablename__ = "logs"
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     timestamp = db.Column(db.DateTime, server_default=db.func.current_timestamp())
     event = db.Column(db.Text)
     status = db.Column(db.String(50))
+    duration_ms = db.Column(db.Integer)  # optional timing for the action
 
     task = db.relationship("Task", back_populates="logs")
+    actor = db.relationship("User", foreign_keys=[actor_id])
 
     def to_public(self):
         return {
             "id": self.id,
             "task_id": self.task_id,
+            "actor_id": self.actor_id,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "event": self.event,
             "status": self.status,
+            "duration_ms": self.duration_ms,
         }
 
 class WorkflowRule(db.Model):

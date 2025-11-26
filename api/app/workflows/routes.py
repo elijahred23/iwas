@@ -411,7 +411,7 @@ def create_task(wf_id):
     t = Task(workflow_id=wf_id, name=name, status=status, assigned_to=assigned_to, due_date=due_date)
     db.session.add(t)
     db.session.flush()  # get t.id
-    db.session.add(Log(task_id=t.id, event="created", status=t.status))
+    db.session.add(Log(task_id=t.id, event="created", status=t.status, actor_id=user.id))
     _apply_rules(t, event="created")
     db.session.commit()
 
@@ -469,7 +469,7 @@ def update_task(task_id):
     }
     changes = ", ".join(f"{k}: '{before[k]}'→'{after[k]}'" for k in before if before[k] != after[k]) or "updated"
 
-    db.session.add(Log(task_id=t.id, event=changes, status=t.status))
+    db.session.add(Log(task_id=t.id, event=changes, status=t.status, actor_id=user.id))
     _apply_rules(t, event="updated")
     db.session.commit()
 

@@ -102,7 +102,13 @@ export default function Logs() {
           {pageItems.map(x=>(
             <li key={x.id} style={{padding:'8px 0', borderBottom:'1px solid #eee'}}>
               <div style={{fontSize:12,opacity:.7}}>{fmt(x.timestamp)}</div>
-              <div><b>{x.workflow?.name || '—'}</b> · #{x.task?.id} “{x.task?.name}” — {x.event} ({x.status || '—'})</div>
+              <div>
+                <b>{x.workflow?.name || '—'}</b> · #{x.task?.id} “{x.task?.name}” — {x.event} ({x.status || '—'})
+                {x.duration_ms ? ` • ${x.duration_ms}ms` : ''}
+              </div>
+              <div style={{ fontSize:12, opacity:0.75 }}>
+                {x.actor ? `By ${x.actor.name} (${x.actor.email})` : 'System'}
+              </div>
             </li>
           ))}
         </ul>

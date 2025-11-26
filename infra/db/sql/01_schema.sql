@@ -34,9 +34,11 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS logs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   task_id INT NOT NULL,
+  actor_id INT NULL,
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
   event TEXT,
   status VARCHAR(50),
+  duration_ms INT NULL,
   CONSTRAINT fk_logs_task
     FOREIGN KEY (task_id) REFERENCES tasks(id)
     ON DELETE CASCADE

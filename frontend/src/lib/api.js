@@ -13,7 +13,8 @@ function getCookie(name) {
 api.interceptors.request.use((config) => {
   const needsCsrf = /post|put|patch|delete/i.test(config.method || '');
   if (needsCsrf) {
-    const token = getCookie('csrf_access_token');
+    const isRefresh = (config.url || '').includes('/auth/refresh');
+    const token = getCookie(isRefresh ? 'csrf_refresh_token' : 'csrf_access_token');
     if (token) config.headers['X-CSRF-TOKEN'] = token;
   }
   return config;

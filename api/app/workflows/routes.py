@@ -263,11 +263,14 @@ def create_rule(wf_id):
     when_name_contains = (data.get("when_name_contains") or "").strip() or None
     action_type = (data.get("action_type") or "").strip()
     action_value = (data.get("action_value") or "").strip() or None
+    cron_expr = (data.get("cron_expr") or "").strip() or None
 
     if not name:
         return jsonify({"ok": False, "error": "name is required"}), 422
     if action_type not in ("set_status", "assign_to", "notify_slack"):
         return jsonify({"ok": False, "error": "action_type must be set_status | assign_to | notify_slack"}), 422
+    if cron_expr and not _cron_matches(cron_expr, datetime.utcnow()):
+        return jsonify({"ok": False, "error": "cron_expr must be a valid 5-field cron (m h dom mon dow)"}), 422
 
     rule = WorkflowRule(
         workflow_id=wf_id,
@@ -276,6 +279,7 @@ def create_rule(wf_id):
         when_name_contains=when_name_contains,
         action_type=action_type,
         action_value=action_value,
+        cron_expr=cron_expr,
     )
     db.session.add(rule)
     db.session.commit()

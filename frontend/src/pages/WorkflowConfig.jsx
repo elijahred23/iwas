@@ -34,6 +34,15 @@ export default function WorkflowConfig() {
   const [ruleCron, setRuleCron] = useState('');
   const [ruleMsg, setRuleMsg] = useState('');
 
+  const cronLooksValid = (raw) => {
+    if (!raw) return true; // optional
+    const parts = raw.trim().split(/\s+/);
+    if (parts.length !== 5) return false;
+    // allow *, */n, numbers, lists with commas
+    const okPart = (p) => /^(\*|\*\/\d+|\d+|\d+(,\d+)+)$/.test(p);
+    return parts.every(okPart);
+  };
+
   // debounce search input
   useEffect(() => {
     const t = setTimeout(() => {
@@ -132,14 +141,18 @@ export default function WorkflowConfig() {
       setRuleMsg('Select a workflow first');
       return;
     }
+    if (!cronLooksValid(ruleCron)) {
+      setRuleMsg('Invalid cron. Use 5 fields (e.g., */5 * * * *).');
+      return;
+    }
     try {
       await WorkflowsAPI.createRule(selectedWf, {
         name: ruleName,
         when_status: ruleStatus || null,
         when_name_contains: ruleContains || null,
         action_type: ruleAction,
-        action_value: ruleValue || null,
-        cron_expr: ruleCron || null,
+        action_value: ruleValue.trim() || null,
+        cron_expr: ruleCron.trim() || null,
       });
       setRuleName(''); setRuleStatus(''); setRuleContains(''); setRuleValue(''); setRuleCron('');
       const r = await WorkflowsAPI.listRules(selectedWf);

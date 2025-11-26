@@ -231,8 +231,9 @@ export default function WorkflowConfig() {
             <option value="set_status">Action: set status</option>
             <option value="assign_to">Action: assign to</option>
             <option value="notify_slack">Action: send Slack notice</option>
+            <option value="github_issue">Action: create GitHub issue</option>
           </select>
-          <input className="input" placeholder="Action value (e.g., done / alex@example.com / message)" value={ruleValue} onChange={e=>setRuleValue(e.target.value)} />
+          <input className="input" placeholder="Action value (e.g., done / alex@example.com / message/issue title)" value={ruleValue} onChange={e=>setRuleValue(e.target.value)} />
           <input className="input" placeholder="Cron (e.g., */15 * * * *) optional" value={ruleCron} onChange={e=>setRuleCron(e.target.value)} />
           <button type="submit" className=" btn-primary" disabled={!selectedWf}>Save rule</button>
         </form>

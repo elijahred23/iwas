@@ -5,8 +5,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 
 from ..extensions import db
-from ..models import User, Workflow, Task, Log, WorkflowRule
+from ..models import User, Workflow, Task, Log, WorkflowRule, Integration
 from ..integrations.slack import send_slack
+from ..integrations.github import create_issue as gh_create_issue, GitHubError
 
 workflows_bp = Blueprint("workflows", __name__)
 
@@ -64,6 +65,25 @@ def _apply_rules(task: Task, event: str = "updated", rules: list[WorkflowRule] |
             msg = rule.action_value or f"Rule '{rule.name}' matched on task #{task.id}"
             _notify(task.workflow.user_id, f":robot_face: {msg} • Task “{task.name}” (#{task.id}) [{event}]")
             actions_applied.append(f"rule[{rule.name}]: notified slack")
+        elif rule.action_type == "github_issue":
+            integ = Integration.query.filter_by(user_id=task.workflow.user_id, type="github").first()
+            if not integ:
+                continue
+            cfg = integ.get_github()
+            repo = cfg.get("default_repo")
+            token = cfg.get("token")
+            api_base = cfg.get("api_base")
+            if not repo or "/" not in repo or not token:
+                continue
+            owner, repo_name = repo.split("/", 1)
+            title = rule.action_value or f"Task #{task.id}: {task.name}"
+            body = f"Workflow: {task.workflow.name}\nTask: {task.name}\nStatus: {task.status or 'unknown'}\nTriggered: {event}"
+            try:
+                issue = gh_create_issue(api_base, token, owner, repo_name, title, body)
+                num = issue.get("number")
+                actions_applied.append(f"rule[{rule.name}]: github issue #{num or '?'}")
+            except GitHubError:
+                continue
 
     if actions_applied:
         db.session.add(Log(task_id=task.id, event="; ".join(actions_applied), status=task.status))
@@ -267,8 +287,8 @@ def create_rule(wf_id):
 
     if not name:
         return jsonify({"ok": False, "error": "name is required"}), 422
-    if action_type not in ("set_status", "assign_to", "notify_slack"):
-        return jsonify({"ok": False, "error": "action_type must be set_status | assign_to | notify_slack"}), 422
+    if action_type not in ("set_status", "assign_to", "notify_slack", "github_issue"):
+        return jsonify({"ok": False, "error": "action_type must be set_status | assign_to | notify_slack | github_issue"}), 422
     if cron_expr and not _cron_matches(cron_expr, datetime.utcnow()):
         return jsonify({"ok": False, "error": "cron_expr must be a valid 5-field cron (m h dom mon dow)"}), 422
 

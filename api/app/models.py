@@ -83,6 +83,8 @@ class Log(db.Model):
     event = db.Column(db.Text)
     status = db.Column(db.String(50))
     duration_ms = db.Column(db.Integer)  # optional timing for the action
+    service = db.Column(db.String(100))
+    error_message = db.Column(db.Text)
 
     task = db.relationship("Task", back_populates="logs")
     actor = db.relationship("User", foreign_keys=[actor_id])
@@ -96,6 +98,8 @@ class Log(db.Model):
             "event": self.event,
             "status": self.status,
             "duration_ms": self.duration_ms,
+            "service": self.service,
+            "error_message": self.error_message,
         }
 
 class WorkflowRule(db.Model):

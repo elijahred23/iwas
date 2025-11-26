@@ -36,8 +36,46 @@ def recent():
             "event": log.event,
             "status": log.status,
             "duration_ms": log.duration_ms,
+            "service": log.service,
+            "error_message": log.error_message,
             "task": {"id": task.id, "name": task.name},
             "workflow": {"id": wf.id, "name": wf.name, "user_id": wf.user_id},
             "actor": {"id": actor.id, "name": actor.name, "email": actor.email} if actor else None,
         })
     return jsonify({"ok": True, "items": items})
+
+
+@logs_bp.post("/record")
+@jwt_required()
+def record():
+    """
+    Record a failure/event log with error context. Requires task_id.
+    """
+    u = _user()
+    if not u:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    body = request.get_json(silent=True) or {}
+    task_id = body.get("task_id")
+    if not task_id:
+        return jsonify({"ok": False, "error": "task_id is required"}), 422
+
+    task = Task.query.get(task_id)
+    if not task:
+        return jsonify({"ok": False, "error": "Task not found"}), 404
+
+    if u.role != "admin" and task.workflow.user_id != u.id:
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+
+    log = Log(
+        task_id=task.id,
+        actor_id=u.id,
+        event=body.get("event") or "failure",
+        status=body.get("status") or "failed",
+        duration_ms=body.get("duration_ms"),
+        service=body.get("service"),
+        error_message=body.get("error_message"),
+    )
+    db.session.add(log)
+    db.session.commit()
+    return jsonify({"ok": True, "item": log.to_public()})

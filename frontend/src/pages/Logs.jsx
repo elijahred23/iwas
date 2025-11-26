@@ -88,6 +88,11 @@ export default function Logs() {
         <button onClick={()=>setSortDir(d => d === 'asc' ? 'desc' : 'asc')}>
           {sortDir === 'asc' ? 'Asc ↑' : 'Desc ↓'}
         </button>
+        <div style={{ display:'inline-flex', gap:6, alignItems:'center', background:'#f9fafb', padding:'6px 8px', borderRadius:8, border:'1px solid #e5e7eb' }}>
+          <span style={{ fontSize:12, color:'#6b7280' }}>Legend:</span>
+          <span className="pill" style={{ background:'#fee2e2', color:'#991b1b' }}>failed</span>
+          <span className="pill" style={{ background:'#dbeafe', color:'#1d4ed8' }}>service</span>
+        </div>
         <label>Per page:&nbsp;
           <select value={pageSize} onChange={e=>setPageSize(Number(e.target.value))}>
             <option value={25}>25</option>
@@ -109,10 +114,20 @@ export default function Logs() {
           {pageItems.map(x=>(
             <li key={x.id} style={{padding:'8px 0', borderBottom:'1px solid #eee'}}>
               <div style={{fontSize:12,opacity:.7}}>{fmt(x.timestamp)}</div>
-              <div>
-                <b>{x.workflow?.name || '—'}</b> · #{x.task?.id} “{x.task?.name}” — {x.event} ({x.status || '—'})
-                {x.duration_ms ? ` • ${x.duration_ms}ms` : ''}
+              <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                <b>{x.workflow?.name || '—'}</b> · #{x.task?.id} “{x.task?.name}”
+                <span className="pill" style={x.status?.toLowerCase() === 'failed' ? { background:'#fee2e2', color:'#991b1b' } : {}}>
+                  {x.status || '—'}
+                </span>
+                <span style={{ opacity:0.8 }}>{x.event}</span>
+                {x.duration_ms ? <span className="pill">{x.duration_ms}ms</span> : null}
+                {x.service ? <span className="pill" style={{ background:'#dbeafe', color:'#1d4ed8' }}>{x.service}</span> : null}
               </div>
+              {x.error_message && (
+                <div style={{ fontSize:12, color:'#991b1b', marginTop:4 }}>
+                  Error: {x.error_message}
+                </div>
+              )}
               <div style={{ fontSize:12, opacity:0.75 }}>
                 {x.actor ? `By ${x.actor.name} (${x.actor.email})` : 'System'}
               </div>

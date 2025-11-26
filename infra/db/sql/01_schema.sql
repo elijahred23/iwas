@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS logs (
   event TEXT,
   status VARCHAR(50),
   duration_ms INT NULL,
+  service VARCHAR(100) NULL,
+  error_message TEXT NULL,
   CONSTRAINT fk_logs_task
     FOREIGN KEY (task_id) REFERENCES tasks(id)
     ON DELETE CASCADE

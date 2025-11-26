@@ -27,6 +27,9 @@ def _current_user():
 def _is_admin(user: User) -> bool:
     return bool(user and user.role == "admin")
 
+def _can_manage_workflows(user: User) -> bool:
+    return bool(user and user.role in ("admin", "manager"))
+
 def _notify(user_id: int, text: str) -> None:
     """Best-effort Slack notify; swallow any errors."""
     try:
@@ -133,6 +136,8 @@ def create_workflow():
     user = _current_user()
     if not user:
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    if not _can_manage_workflows(user):
+        return jsonify({"ok": False, "error": "Forbidden: insufficient role to create workflows"}), 403
 
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
@@ -186,8 +191,8 @@ def update_workflow(wf_id):
     if not wf:
         return jsonify({"ok": False, "error": "Not found"}), 404
 
-    if not _is_admin(user) and wf.user_id != user.id:
-        return jsonify({"ok": False, "error": "Not found"}), 404
+    if not (_is_admin(user) or wf.user_id == user.id):
+        return jsonify({"ok": False, "error": "Forbidden: insufficient role to update workflows"}), 403
 
     data = request.get_json(silent=True) or {}
 
@@ -221,8 +226,8 @@ def delete_workflow(wf_id):
     if not wf:
         return jsonify({"ok": False, "error": "Not found"}), 404
 
-    if not _is_admin(user) and wf.user_id != user.id:
-        return jsonify({"ok": False, "error": "Not found"}), 404
+    if not (_is_admin(user) or wf.user_id == user.id):
+        return jsonify({"ok": False, "error": "Forbidden: insufficient role to delete workflows"}), 403
 
     owner_id = wf.user_id
     name = wf.name

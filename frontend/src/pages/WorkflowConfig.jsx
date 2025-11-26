@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from './_scaffold.jsx';
 import { WorkflowsAPI } from '../lib/workflows';
+import { useAuth, useCan } from '../state/auth.jsx';
 
 const PAGE_SIZE = 10;
 const DEBOUNCE_MS = 350;
 
 export default function WorkflowConfig() {
+  const { user } = useAuth();
+  const canManage = useCan(['admin', 'manager']);
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
 
@@ -178,6 +181,7 @@ export default function WorkflowConfig() {
 {/* Create */}
       <div className="page-card" style={{ padding:16, borderRadius:12, marginTop:12, marginBottom:16 }}>
         <h3 style={{ marginTop:0 }}>Create workflow</h3>
+        {!canManage && <div style={{ color:'#b91c1c', marginBottom:8 }}>You do not have permission to create workflows.</div>}
         <form onSubmit={create} style={{ display:'grid', gap:10, maxWidth: 560 }}>
           <input
             className="input"
@@ -185,6 +189,7 @@ export default function WorkflowConfig() {
             value={name}
             onChange={e=>setName(e.target.value)}
             required
+            disabled={!canManage}
           />
           <textarea
             className="input"
@@ -192,9 +197,10 @@ export default function WorkflowConfig() {
             value={description}
             onChange={e=>setDescription(e.target.value)}
             rows={3}
+            disabled={!canManage}
           />
           <div>
-            <button type="submit" className=" btn-primary" disabled={busy}>
+            <button type="submit" className=" btn-primary" disabled={busy || !canManage}>
               {busy ? 'Saving…' : 'Add workflow'}
             </button>
           </div>
@@ -332,7 +338,7 @@ export default function WorkflowConfig() {
                 </div>
                 <div className="card-row-actions">
                   <Link className=" btn-ghost" to={`/workflows/${w.id}`}>Open</Link>
-                  <button className=" btn-danger" onClick={() => remove(w.id)}>Delete</button>
+                  <button className=" btn-danger" onClick={() => remove(w.id)} disabled={!canManage}>Delete</button>
                 </div>
               </li>
             ))}

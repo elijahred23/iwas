@@ -10,6 +10,7 @@ export default function Integrations() {
     return TABS.includes(h) ? h : (localStorage.getItem('integrations.activeTab') || 'slack');
   }, []);
   const [tab, setTab] = useState(TABS.includes(initialTab) ? initialTab : 'slack');
+  const [status, setStatus] = useState(null);
 
   useEffect(() => {
     const onHash = () => {
@@ -36,6 +37,7 @@ export default function Integrations() {
     try {
       await IntegrationsAPI.saveSlack(slackUrl.trim());
       setSlackMsg('Saved ✅');
+      loadConfig();
     } catch (e) {
       setSlackMsg(e?.response?.data?.error || 'Save failed');
     }
@@ -45,6 +47,7 @@ export default function Integrations() {
     try {
       await IntegrationsAPI.testSlack();
       setSlackMsg('Test sent ✅ Check Slack.');
+      loadConfig();
     } catch (e) {
       setSlackMsg(e?.response?.data?.error || 'Test failed');
     }
@@ -70,6 +73,7 @@ export default function Integrations() {
         default_repo: ghDefaultRepo.trim() || null
       });
       setGhMsg('Saved ✅');
+      loadConfig();
     } catch (e) {
       setGhMsg(e?.response?.data?.error || 'Save failed');
     }
@@ -134,6 +138,7 @@ export default function Integrations() {
         default_project: jiraDefaultProject.trim() || null,
       });
       setJiraMsg('Saved ✅');
+      loadConfig();
     } catch (e) {
       setJiraMsg(e?.response?.data?.error || 'Save failed');
     }
@@ -209,9 +214,39 @@ export default function Integrations() {
     }
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function loadConfig() {
+    try {
+      const r = await IntegrationsAPI.config();
+      setStatus(r.integrations || {});
+      const jira = r.integrations?.jira?.details || {};
+      const gh = r.integrations?.github?.details || {};
+      if (jira.base_url) setJiraBase(jira.base_url);
+      if (jira.email) setJiraEmail(jira.email);
+      if (jira.default_project) setJiraDefaultProject(jira.default_project);
+      if (gh.api_base) setGhBase(gh.api_base);
+      if (gh.default_repo) setGhDefaultRepo(gh.default_repo);
+    } catch (e) {
+      // silent; UI will keep defaults
+    }
+  }
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
   // ---------- UI ----------
   return (
     <Section title="Integrations" subtitle="Connect Slack, GitHub, and Jira">
+      {status && (
+        <div className="page-card" style={{ padding:12, borderRadius:8, marginBottom:12 }}>
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            <StatusPill label="Slack" ok={status.slack?.configured} error={status.slack?.error} detail={status.slack?.details?.webhook_host && `Host: ${status.slack.details.webhook_host}`} />
+            <StatusPill label="Jira" ok={status.jira?.configured} detail={status.jira?.details?.base_url} />
+            <StatusPill label="GitHub" ok={status.github?.configured} detail={status.github?.details?.api_base} />
+          </div>
+        </div>
+      )}
+
       {/* tabs */}
       <div style={{ marginBottom: 12 }}>
         <nav
@@ -257,6 +292,10 @@ export default function Integrations() {
           style={{ padding: 16, borderRadius: 8 }}
         >
           <h3 style={{ marginTop: 0 }}>Slack</h3>
+          <p style={{ marginTop:0, color:'#475467', fontSize:14 }}>
+            Configure an incoming webhook so IWAS can send alerts (e.g., Jira updates).
+          </p>
+          {status?.slack?.error && <div style={{ color:'crimson', marginBottom:8 }}>Slack error: {status.slack.error}</div>}
           <form onSubmit={saveSlack} style={{ display: 'grid', gap: 8, maxWidth: 640 }}>
             <input
               placeholder="Incoming Webhook URL"
@@ -283,6 +322,9 @@ export default function Integrations() {
           style={{ padding: 16, borderRadius: 8 }}
         >
           <h3 style={{ marginTop: 0 }}>GitHub</h3>
+          <p style={{ marginTop:0, color:'#475467', fontSize:14 }}>
+            Add a PAT with repo scope or GitHub App token. We redact tokens and only show host + default repo.
+          </p>
           <form onSubmit={saveGitHub} style={{ display: 'grid', gap: 8, maxWidth: 640 }}>
             <input placeholder="API base (optional)" value={ghBase} onChange={e=>setGhBase(e.target.value)} />
             <input placeholder="Default repo (owner/name) — optional" value={ghDefaultRepo} onChange={e=>setGhDefaultRepo(e.target.value)} />
@@ -327,6 +369,9 @@ export default function Integrations() {
           style={{ padding: 16, borderRadius: 8 }}
         >
           <h3 style={{ marginTop: 0 }}>Jira (Cloud)</h3>
+          <p style={{ marginTop:0, color:'#475467', fontSize:14 }}>
+            Use a Jira API token and base URL (e.g., https://your-domain.atlassian.net). Default project key is optional.
+          </p>
 
           <form onSubmit={saveJira} style={{ display:'grid', gap:8, maxWidth:640 }}>
             <input placeholder="Base URL (e.g., https://your-domain.atlassian.net)" value={jiraBase} onChange={e=>setJiraBase(e.target.value)} />
@@ -391,5 +436,17 @@ export default function Integrations() {
         </div>
       )}
     </Section>
+  );
+}
+
+function StatusPill({ label, ok, error, detail }) {
+  const color = error ? '#b91c1c' : ok ? '#166534' : '#92400e';
+  const bg = error ? '#fef2f2' : ok ? '#ecfdf3' : '#fffbeb';
+  return (
+    <div style={{ padding:'8px 10px', borderRadius:8, border:`1px solid ${color}20`, background:bg, minWidth:140 }}>
+      <div style={{ fontWeight:700, color }}>{label}</div>
+      <div style={{ fontSize:12, color }}>{error ? error : ok ? 'Connected' : 'Not configured'}</div>
+      {detail && <div style={{ fontSize:12, color:'#475467', marginTop:2 }}>{detail}</div>}
+    </div>
   );
 }

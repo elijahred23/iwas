@@ -54,4 +54,8 @@ export const IntegrationsAPI = {
   rotateJiraWebhook() {
     return api.post('/integrations/jira/webhook/rotate').then(r => r.data);
   },
+  // ---- Aggregate config ----
+  config() {
+    return api.get('/integrations/config').then(r => r.data);
+  },
 };

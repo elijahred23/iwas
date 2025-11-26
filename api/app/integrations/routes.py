@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models import User, Integration
@@ -10,6 +11,14 @@ integrations_bp = Blueprint("integrations", __name__)
 def _current_user():
     uid = get_jwt_identity()
     return User.query.get(uid)
+
+def _mask_secret(value: str | None, keep: int = 4) -> str | None:
+    if not value:
+        return None
+    value = str(value)
+    if len(value) <= keep:
+        return "*" * len(value)
+    return "*" * (len(value) - keep) + value[-keep:]
 
 @integrations_bp.get("/")
 @jwt_required()
@@ -141,3 +150,76 @@ def github_create_issue(owner, repo):
         }), 201
     except GitHubError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@integrations_bp.get("/config")
+@jwt_required()
+def integration_config():
+    """
+    Return non-sensitive integration configuration so the UI can show status.
+    """
+    user = _current_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    # Slack
+    slack_url = None
+    slack_error = None
+    try:
+        slack_url = get_slack_webhook(user.id)
+    except Exception as e:
+        slack_error = str(e)
+    slack_host = None
+    if slack_url:
+        try:
+            slack_host = slack_url.split("/")[2]
+        except Exception:
+            slack_host = None
+
+    # Jira
+    jira_row = Integration.query.filter_by(user_id=user.id, type="jira").first()
+    jira_creds = {}
+    if jira_row:
+        try:
+            jira_creds = json.loads(jira_row.credentials or "{}")
+        except Exception:
+            jira_creds = {}
+    jira_details = {
+        "base_url": jira_creds.get("base_url"),
+        "email": jira_creds.get("email"),
+        "default_project": jira_creds.get("default_project"),
+        "has_token": bool(jira_creds.get("api_token")),
+    }
+    jira_configured = bool(jira_details["base_url"] and jira_details["email"] and jira_details["has_token"])
+
+    # GitHub
+    gh_row = Integration.query.filter_by(user_id=user.id, type="github").first()
+    gh_details = {}
+    if gh_row:
+        gh_cfg = gh_row.get_github()
+        gh_details = {
+            "api_base": gh_cfg.get("api_base"),
+            "default_repo": gh_cfg.get("default_repo"),
+            "token": _mask_secret(gh_cfg.get("token")),
+            "has_token": bool(gh_cfg.get("token")),
+        }
+    gh_configured = bool(gh_details.get("has_token"))
+
+    return jsonify({
+        "ok": True,
+        "integrations": {
+            "slack": {
+                "configured": bool(slack_url),
+                "error": slack_error,
+                "details": {"webhook_host": slack_host},
+            },
+            "jira": {
+                "configured": jira_configured,
+                "details": jira_details,
+            },
+            "github": {
+                "configured": gh_configured,
+                "details": gh_details,
+            },
+        },
+    }), 200

@@ -126,3 +126,24 @@ def list_users():
         "count": len(users),
         "users": [u.to_public() for u in users]
     }), 200
+
+
+@auth_bp.patch("/users/<int:uid>/role")
+@jwt_required()
+def update_user_role(uid: int):
+    admin = _current_user()
+    if not admin or admin.role != "admin":
+        return _json_error("Forbidden", 403)
+
+    target = User.query.get(uid)
+    if not target:
+        return _json_error("Not found", 404)
+
+    body = request.get_json(silent=True) or {}
+    role = (body.get("role") or "").strip().lower()
+    if role not in ("admin", "manager", "user"):
+        return _json_error("role must be admin | manager | user", 422)
+
+    target.role = role
+    db.session.commit()
+    return jsonify({"ok": True, "user": target.to_public()}), 200

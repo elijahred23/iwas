@@ -8,6 +8,14 @@ export const AuthAPI = {
     const { data } = await api.post('/auth/change-password', { current_password, new_password });
     return data;
   },
+  listUsers: async () => {
+    const { data } = await api.get('/auth/users');
+    return data;
+  },
+  updateUserRole: async (userId, role) => {
+    const { data } = await api.patch(`/auth/users/${userId}/role`, { role });
+    return data;
+  },
 };
 
 export function AuthProvider({ children }) {

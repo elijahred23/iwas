@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import Section from './_scaffold.jsx';
 import { AnalyticsAPI } from '../lib/analytics';
+import { subscribeTaskChanges } from '../state/taskSync';
 
 export default function Analytics() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   const [summary, setSummary] = useState(null);
   const [statuses, setStatuses] = useState({ total: 0, breakdown: [] });
@@ -30,6 +33,7 @@ export default function Analytics() {
       setOverdue(od);
       setRecent(rc);
       setTop(tw);
+      setLastUpdated(new Date());
     } catch (e) {
       setErr(e?.response?.data?.error || 'Failed to load analytics');
     } finally {
@@ -37,11 +41,34 @@ export default function Analytics() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const off = subscribeTaskChanges(() => load());
+    return () => { if (off) off(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => load(), 30000);
+    return () => clearInterval(id);
+  }, [autoRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Section title="Analytics" subtitle="Trends and operational insights">
       {err && <div style={{ color:'crimson', marginBottom:12 }}>{err}</div>}
+
+      <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:8 }}>
+        <button onClick={load} disabled={busy}>{busy ? 'Refreshing…' : 'Refresh now'}</button>
+        <label style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:14 }}>
+          <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
+          Auto-refresh (30s)
+        </label>
+        {lastUpdated && (
+          <span style={{ fontSize:13, color:'#6b7280' }}>
+            Updated at {lastUpdated.toLocaleTimeString()}
+          </span>
+        )}
+      </div>
 
       {/* Top summary cards */}
       <div className="page-card" style={{ padding:16, borderRadius:8 }}>

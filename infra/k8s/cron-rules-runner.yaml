@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: iwas-rules-runner
+spec:
+  schedule: "*/1 * * * *"  # every minute (UTC)
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: runner
+              image: curlimages/curl:8.4.0
+              args:
+                - -sS
+                - "-X"
+                - POST
+                - "http://iwas-api:5050/api/workflows/rules/run-scheduled?secret=$(RULES_CRON_SECRET)"
+              env:
+                - name: RULES_CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: iwas-secret
+                      key: RULES_CRON_SECRET

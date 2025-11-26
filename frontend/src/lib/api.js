@@ -27,7 +27,9 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config || {};
     const status = error?.response?.status;
-    if (status === 401 && !original._retry) {
+    const hasRefreshCookie = !!getCookie('refresh_token_cookie');
+    const isAuthEndpoint = (original.url || '').startsWith('/auth/');
+    if (status === 401 && hasRefreshCookie && !isAuthEndpoint && !original._retry) {
       original._retry = true;
       try {
         refreshing = refreshing || api.post('/auth/refresh');

@@ -18,3 +18,25 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Auto refresh on 401 once per request
+let refreshing = null;
+api.interceptors.response.use(
+  (resp) => resp,
+  async (error) => {
+    const original = error.config || {};
+    const status = error?.response?.status;
+    if (status === 401 && !original._retry) {
+      original._retry = true;
+      try {
+        refreshing = refreshing || api.post('/auth/refresh');
+        await refreshing;
+        refreshing = null;
+        return api(original);
+      } catch (e) {
+        refreshing = null;
+      }
+    }
+    return Promise.reject(error);
+  }
+);

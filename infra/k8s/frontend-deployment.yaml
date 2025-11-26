@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: iwas-frontend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: iwas-frontend
@@ -17,3 +17,17 @@ spec:
           image: elijahproctor/iwas-frontend:latest
           ports:
             - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3

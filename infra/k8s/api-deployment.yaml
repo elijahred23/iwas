@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: iwas-api
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: iwas-api
@@ -18,6 +18,20 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 5050
+          readinessProbe:
+            httpGet:
+              path: /api/ping
+              port: 5050
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /api/ping
+              port: 5050
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
           envFrom:
             - configMapRef:
                 name: iwas-config

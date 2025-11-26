@@ -11,6 +11,9 @@ export default function TaskManagement() {
   const [pageSize, setPageSize] = useState(20);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const today = useMemo(() => {
+    const t = new Date(); t.setHours(0,0,0,0); return t;
+  }, []);
 
   const load = useCallback(async () => {
     setBusy(true); setErr('');
@@ -65,9 +68,54 @@ export default function TaskManagement() {
   const showingFrom = total === 0 ? 0 : start + 1;
   const showingTo = Math.min(start + pageSize, total);
 
+  // Derived stats for PM visibility
+  const stats = useMemo(() => {
+    const parseDate = (d) => {
+      if (!d) return null;
+      const dt = new Date(d);
+      return isNaN(dt) ? null : dt;
+    };
+    const overdue = [];
+    const dueSoon = [];
+    const done = [];
+    filtered.forEach((t) => {
+      const due = parseDate(t.due_date);
+      const isDone = (t.status || '').toLowerCase() === 'done';
+      if (isDone) done.push(t);
+      if (due) {
+        const diff = Math.floor((due - today) / (1000 * 60 * 60 * 24));
+        if (!isDone && due < today) overdue.push({ ...t, due });
+        if (!isDone && diff >= 0 && diff <= 7) dueSoon.push({ ...t, due, days: diff });
+      }
+    });
+    overdue.sort((a, b) => a.due - b.due);
+    dueSoon.sort((a, b) => a.due - b.due);
+    return {
+      overdue,
+      dueSoon,
+      doneCount: done.length,
+      total: filtered.length,
+      pendingCount: filtered.filter(t => (t.status || '').toLowerCase() !== 'done').length,
+    };
+  }, [filtered, today]);
+
   return (
     <Section title="Task Management" subtitle="All tasks across your workflows">
       {err && <div style={{ color:'crimson', marginBottom: 10 }}>{err}</div>}
+
+      {/* Snapshot cards */}
+      <div className="page-card" style={{ padding:12, borderRadius:10, marginBottom:12 }}>
+        <div style={{ display:'grid', gap:10, gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))' }}>
+          <Stat label="Overdue" value={stats.overdue.length} tone="#dc2626" />
+          <Stat label="Due in 7 days" value={stats.dueSoon.length} tone="#d97706" />
+          <Stat label="Done" value={stats.doneCount} tone="#16a34a" />
+          <Stat label="Open" value={stats.pendingCount} tone="#2563eb" />
+        </div>
+        <div style={{ display:'grid', gap:12, gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', marginTop:12 }}>
+          <MiniList title="Overdue" items={stats.overdue.slice(0,5)} empty="No overdue tasks" />
+          <MiniList title="Due soon (≤7d)" items={stats.dueSoon.slice(0,5)} empty="Nothing due soon" />
+        </div>
+      </div>
 
       {/* Controls row */}
       <div style={{ display:'flex', flexWrap:'wrap', gap:8, alignItems:'center', marginBottom:12 }}>
@@ -157,5 +205,37 @@ export default function TaskManagement() {
         </div>
       )}
     </Section>
+  );
+}
+
+function Stat({ label, value, tone }) {
+  return (
+    <div style={{ border:'1px solid #e5e7eb', borderRadius:10, padding:'10px 12px' }}>
+      <div style={{ fontSize:12, textTransform:'uppercase', opacity:0.7 }}>{label}</div>
+      <div style={{ fontSize:28, fontWeight:800, color: tone || '#111827' }}>{value}</div>
+    </div>
+  );
+}
+
+function MiniList({ title, items, empty }) {
+  return (
+    <div style={{ border:'1px solid #e5e7eb', borderRadius:10, padding:10 }}>
+      <div style={{ fontWeight:700, marginBottom:6 }}>{title}</div>
+      {items.length === 0 ? (
+        <div style={{ opacity:0.65, fontSize:13 }}>{empty}</div>
+      ) : (
+        <ul style={{ listStyle:'none', padding:0, margin:0, display:'grid', gap:6 }}>
+          {items.map(i => (
+            <li key={i.id} style={{ display:'flex', justifyContent:'space-between', gap:8, fontSize:13 }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{i.name}</div>
+                <div style={{ opacity:0.7 }}>{i.assigned_to || 'Unassigned'}</div>
+              </div>
+              <div style={{ textAlign:'right', whiteSpace:'nowrap' }}>{i.due_date || '—'}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

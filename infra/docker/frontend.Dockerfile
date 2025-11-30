@@ -14,7 +14,7 @@ RUN npm run build
 # ---- serve static using nginx ----
 FROM nginx:alpine
 
-# ✅ Use SPA-friendly nginx config
+# Use SPA-friendly nginx config
 COPY infra/docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built files

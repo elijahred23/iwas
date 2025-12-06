@@ -29,5 +29,62 @@ The CI/CD pipeline in `.github/workflows/main.yml` automates building, testing, 
 
 IWAS integrates full-stack development with modern DevOps practices. The project combines clean application architecture, declarative infrastructure, and continuous delivery so environments remain reproducible, configuration stays centralized, and deployments happen reliably on every commit.
 
+---
+## **Capstone Requirements**
 
+Author: Elijah Proctor  
+Instructor: Professor Mujeye  
+Program: Master of Science in Software Engineering, Grand Canyon University
 
+### Functional Requirements (User Stories US-001 → US-010)
+- **US-001** As a project manager, I would like to streamline the delivery of tasks so that everyone can do their job well.
+- **US-002** As a developer, I desire real-time notifications in Slack whenever a Jira ticket undergoes changes so that I can keep up with project progress.
+- **US-003** As an administrator, I need to configure and handle API integrations so Jira, Slack, and GitHub all work together with IWAS without issues.
+- **US-004** As the team leader, I require real-time analytics to monitor task performance and make informed, data-driven decisions.
+- **US-005** As a user, I want to set up my own workflow rules so that certain jobs are done automatically when specific conditions are met.
+- **US-006** As a project manager, I want to track overdue and completed tasks to monitor project growth and productivity.
+- **US-007** As an administrator, I want to set up RBAC so that only authorized users can modify workflow settings.
+- **US-008** As a system supervisor, I want to track and log workflow execution so I can identify problems and ensure accountability.
+- **US-009** As a developer, I desire immediate updates to GitHub to streamline deployment.
+- **US-010** As a user, I want to be automatically notified if a task errors so that I can fix it immediately.
+
+### Non-Functional Requirements (User Stories NFR-001 → NFR-010)
+- **NFR-001** The system must maintain at least 99% uptime so automation runs reliably.
+- **NFR-002** All API calls must be encrypted with HTTPS and secure tokens to ensure confidentiality.
+- **NFR-003** IWAS must handle at least 10,000 API calls per day for large-scale automation.
+- **NFR-004** Tasks must complete in two seconds or less to avoid user wait time.
+- **NFR-005** RBAC shall restrict user permissions so only authorized users can modify workflows.
+- **NFR-006** All failed login attempts must be logged for security auditing.
+- **NFR-007** The system must maintain detailed failure logs and debugging information to help developers fix issues quickly.
+- **NFR-008** The system must run on a Kubernetes cluster and support automatic scaling based on workload.
+- **NFR-009** The system must run automated tests before deployment to detect issues early.
+- **NFR-010** Daily MySQL backups must be generated to prevent data loss.
+
+### Technical Requirements (technologies/tools)
+- Python (Flask) – API server, workflows, integrations
+- React JS – Frontend framework
+- MySQL – Database
+- DigitalOcean Kubernetes – Deployment and scaling
+- Docker – Containerization
+- Slack API – Real-time messaging/notifications
+- Jira API – Task and workflow integration
+- GitHub API – Repository and commit automation
+- OAuth 2.0 – Authentication and authorization
+- JSON Web Tokens (JWT) – Secure authentication tokens
+
+### Logical System Design (high level)
+- React UI communicates with Flask API Gateway.
+- Security layer enforces OAuth2.0-style auth and RBAC before routing to services.
+- Workflow Engine coordinates automation and triggers integrations (Jira/Slack/GitHub).
+- MySQL stores workflow/task data; Logging & Monitoring capture events for observability.
+
+### User Interface Design
+- Sitemap ensures fast access to Workflow Configuration, Task Management, Analytics, Integrations, Reports, Notifications, and Settings.
+- Wireframes emphasize clear navigation, consistent patterns, and streamlined flows that reduce user effort.
+- Responsive layout tuned for desktop and mobile with light-themed styling.
+
+### Functional Acceptance Tests (E2E)
+- Lightweight end-to-end checks for notifications, Slack alerts, and GitHub auto-updates live in `api/tests/e2e/test_integrations.py`.
+- Required env: `IWAS_BASE_URL` (e.g., http://localhost:5050) and `IWAS_JWT` (Bearer token).
+- Optional env to exercise integrations: `IWAS_SLACK_WEBHOOK`, `IWAS_GH_TOKEN`, `IWAS_GH_REPO` (owner/name).
+- Run locally: `cd api && python -m unittest discover -s tests/e2e`.

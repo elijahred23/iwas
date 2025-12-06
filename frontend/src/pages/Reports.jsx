@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Section from './_scaffold.jsx';
 import { WorkflowsAPI } from '../lib/workflows';
 import { TasksAPI } from '../lib/tasks';
@@ -29,10 +29,12 @@ function toCSV(rows, headers) {
 }
 
 export default function Reports() {
+  const PAGE_SIZE = 18;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [workflows, setWorkflows] = useState([]);
   const [rows, setRows] = useState([]); // flattened tasks across workflows
+  const [page, setPage] = useState(1);
 
   // filters
   const [q, setQ] = useState('');
@@ -80,6 +82,7 @@ export default function Reports() {
     const off = subscribeTaskChanges(() => load());
     return off;
   }, [load]);
+  useEffect(() => { setPage(1); }, [q, status, wfId, assignedTo, fromDate, toDate, sortKey, sortDir]);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const filtered = useMemo(() => {
@@ -128,6 +131,8 @@ export default function Reports() {
     return [...data].sort(cmp);
   }, [rows, wfId, status, assignedTo, q, fromDate, toDate, sortKey, sortDir]);
 
+  const visible = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page, PAGE_SIZE]);
+
   const stats = useMemo(() => {
     const total = filtered.length;
     const done = filtered.filter(r => (r.status || '').toLowerCase() === 'done').length;
@@ -161,19 +166,58 @@ export default function Reports() {
     a.remove();
   }
 
-  const headerBtn = (key, label) => (
-    <button
-      onClick={() => setSortKey(prev => prev === key ? key : key) || setSortDir(prev => prev === 'asc' ? 'desc' : 'asc')}
-      style={{ background:'none', border:'none', cursor:'pointer', fontWeight: sortKey === key ? 700 : 500 }}
-      title={`Sort by ${label}`}
-    >
-      {label}{sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
-    </button>
-  );
+  const headerBtn = (key, label) => {
+    const active = sortKey === key;
+    const dir = active && sortDir === 'asc' ? '▲' : active ? '▼' : '';
+    return (
+      <button
+        className="sort-btn"
+        onClick={() => {
+          setSortKey(key);
+          setSortDir(prev => (active && prev === 'asc' ? 'desc' : 'asc'));
+        }}
+        title={`Sort by ${label}`}
+      >
+        {label} {dir}
+      </button>
+    );
+  };
+
+  // simple intersection observer to lazy-load pages
+  const sentinelRef = useRef(null);
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    if (visible.length >= filtered.length) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            setPage(p => Math.min(p + 1, Math.ceil(filtered.length / PAGE_SIZE)));
+          }
+        });
+      },
+      { rootMargin: '220px 0px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visible.length, filtered.length, PAGE_SIZE]);
 
   return (
-    <Section title="Reports" subtitle="Filter tasks across workflows and export to CSV">
-      <div className="page-card" style={{ padding: 16, borderRadius: 8 }}>
+    <Section
+      title="Reports"
+      subtitle="Filter tasks across workflows, paginate results, and export to CSV"
+      actions={
+        <>
+          <button className="btn outline btn-sm" onClick={load} disabled={busy}>
+            {busy ? 'Refreshing…' : 'Refresh'}
+          </button>
+          <button className="btn btn-sm" onClick={exportCSV} disabled={filtered.length === 0}>
+            Export CSV
+          </button>
+        </>
+      }
+    >
+      <div className="panel">
         <div className="reports-filters">
           <input
             className="reports-search"
@@ -200,64 +244,110 @@ export default function Reports() {
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
           <input type="date" value={toDate}   onChange={e => setToDate(e.target.value)} />
           <div className="reports-actions">
-            <button className="btn outline btn-sm" onClick={load} disabled={busy}>
-              {busy ? 'Refreshing…' : 'Refresh'}
-            </button>
-            <button className="btn btn-sm" onClick={exportCSV} disabled={filtered.length === 0}>
-              Export CSV
-            </button>
+            <div className="pill">
+              <span className="status-dot" />
+              Live sync on change
+            </div>
           </div>
         </div>
 
-        {error && <div style={{ color: 'crimson', marginTop: 10 }}>{error}</div>}
+        {error && <div className="alert" role="alert" style={{ marginTop: 10 }}>{error}</div>}
 
-        <div style={{ marginTop: 14, display:'flex', gap:16, flexWrap:'wrap' }}>
+        <div className="card-grid stat-grid" style={{ marginTop: 14 }}>
           <Stat label="Total tasks" value={stats.total} />
-          <Stat label="Done" value={stats.done} />
-          <Stat label="Pending" value={stats.pending} />
-          <Stat label="Overdue" value={stats.overdue} />
+          <Stat label="Done" value={stats.done} tone="success" />
+          <Stat label="Pending" value={stats.pending} tone="warning" />
+          <Stat label="Overdue" value={stats.overdue} tone="danger" />
         </div>
+      </div>
 
-        <div style={{ marginTop: 16, border: '1px solid #eee', borderRadius: 8, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '220px 80px 1fr 120px 140px 120px 140px', padding: '10px 12px', background: '#fafafa', fontWeight: 600 }}>
-            <div>{headerBtn('workflow', 'Workflow')}</div>
-            <div>ID</div>
-            <div>{headerBtn('name', 'Task')}</div>
-            <div>{headerBtn('status', 'Status')}</div>
-            <div>Assigned</div>
-            <div>{headerBtn('due_date', 'Due')}</div>
-            <div>{headerBtn('created_at', 'Created')}</div>
-          </div>
-          {filtered.length === 0 ? (
-            <div style={{ padding: 14, opacity: 0.7 }}>{busy ? 'Loading…' : 'No results'}</div>
-          ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {filtered.map(r => (
-                <li key={`${r.workflow_id}:${r.id}`} style={{ display: 'grid', gridTemplateColumns: '220px 80px 1fr 120px 140px 120px 140px', padding: '10px 12px', borderTop: '1px solid #f3f3f3' }}>
-                  <div style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    <Link to={`/workflow/${r.workflow_id}`}>{r.workflow_name}</Link>
-                  </div>
-                  <div>#{r.id}</div>
-                  <div style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</div>
-                  <div style={{ textTransform:'capitalize' }}>{r.status || '—'}</div>
-                  <div>{r.assigned_to || '—'}</div>
-                  <div>{fmt(r.due_date) || '—'}</div>
-                  <div>{fmt(r.created_at) || '—'}</div>
-                </li>
-              ))}
-            </ul>
-          )}
+      <div className="table-wrap" style={{ marginTop: 16 }}>
+        <div className="table-head">
+          <div style={{ fontWeight: 700 }}>Results</div>
+          <div className="muted">{visible.length} of {filtered.length} tasks</div>
         </div>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>{headerBtn('workflow', 'Workflow')}</th>
+              <th>ID</th>
+              <th>{headerBtn('name', 'Task')}</th>
+              <th>{headerBtn('status', 'Status')}</th>
+              <th>Assigned</th>
+              <th>{headerBtn('due_date', 'Due')}</th>
+              <th>{headerBtn('created_at', 'Created')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: 16, textAlign: 'center', color: '#6b7280' }}>
+                  {busy ? 'Loading…' : 'No results'}
+                </td>
+              </tr>
+            ) : (
+              visible.map(r => (
+                <tr key={`${r.workflow_id}:${r.id}`}>
+                  <td>
+                    <Link to={`/workflows/${r.workflow_id}`}>{r.workflow_name}</Link>
+                  </td>
+                  <td>#{r.id}</td>
+                  <td>{r.name}</td>
+                  <td>
+                    <span className={`status-pill ${(r.status || '').toLowerCase()}`}>
+                      <span className="status-dot" />
+                      {r.status || '—'}
+                    </span>
+                  </td>
+                  <td>{r.assigned_to || '—'}</td>
+                  <td>{fmt(r.due_date) || '—'}</td>
+                  <td>{fmt(r.created_at) || '—'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+        <div className="table-foot">
+          <div className="muted">Auto-loading more as you scroll</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <button
+              className="btn outline btn-sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Prev
+            </button>
+            <div className="muted">Page {page} · {(Math.ceil(filtered.length / PAGE_SIZE)) || 1}</div>
+            <button
+              className="btn btn-sm"
+              onClick={() => setPage(p => Math.min(p + 1, Math.ceil(filtered.length / PAGE_SIZE)))}
+              disabled={visible.length >= filtered.length}
+            >
+              Load more
+            </button>
+          </div>
+        </div>
+        {visible.length < filtered.length && <div ref={sentinelRef} />}
       </div>
     </Section>
   );
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, tone }) {
+  const colors = {
+    success: { bg: 'linear-gradient(135deg, #ecfdf3, #d1fae5)', text: '#15803d' },
+    warning: { bg: 'linear-gradient(135deg, #fff7ed, #ffedd5)', text: '#c2410c' },
+    danger:  { bg: 'linear-gradient(135deg, #fef2f2, #fee2e2)', text: '#b91c1c' },
+    default: { bg: 'linear-gradient(135deg, #f8fafc, #eef2ff)', text: '#0f172a' },
+  };
+  const palette = colors[tone] || colors.default;
   return (
-    <div style={{ padding: 12, border: '1px solid #eee', borderRadius: 8, minWidth: 140 }}>
-      <div style={{ fontSize: 12, opacity: 0.65 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+    <div
+      className="stat-card"
+      style={{ background: palette.bg, color: palette.text, borderColor: 'rgba(15,23,42,0.06)' }}
+    >
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
     </div>
   );
 }

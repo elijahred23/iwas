@@ -1,9 +1,14 @@
-export default function Section({ title, subtitle, children }) {
+export default function Section({ title, subtitle, actions = null, children }) {
   return (
     <div className="page-card">
-      <h1>{title}</h1>
-      {subtitle && <p style={{ color: '#555', marginTop: '0.3rem' }}>{subtitle}</p>}
-      <div style={{marginTop: 12}}>
+      <div className="section-head">
+        <div>
+          <h1>{title}</h1>
+          {subtitle && <p className="section-sub">{subtitle}</p>}
+        </div>
+        {actions && <div className="section-actions">{actions}</div>}
+      </div>
+      <div style={{ marginTop: 14 }}>
         {children}
       </div>
     </div>

@@ -39,33 +39,6 @@ function Sparkline({ data, width = 220, height = 48, strokeWidth = 2 }) {
   );
 }
 
-/* ---------- stat card ---------- */
-function Stat({ label, value, delta }) {
-  const up = delta > 0;
-  const down = delta < 0;
-  const badgeStyle = {
-    fontSize: 12,
-    padding: '2px 6px',
-    borderRadius: 999,
-    background: up ? 'rgba(16,185,129,.12)' : down ? 'rgba(239,68,68,.12)' : 'rgba(0,0,0,.06)',
-    color: up ? '#10b981' : down ? '#ef4444' : '#444',
-  };
-  return (
-    <div style={{ padding:16, border:'1px solid #eee', borderRadius:10 }}>
-      <div style={{ opacity:.7, marginBottom:6 }}>{label}</div>
-      <div style={{ fontSize:28, fontWeight:700 }}>{nf.format(value ?? 0)}</div>
-      {Number.isFinite(delta) && (
-        <div style={{ marginTop:6 }}>
-          <span style={badgeStyle}>
-            {delta > 0 ? '▲' : delta < 0 ? '▼' : '—'} {Math.round(Math.abs(delta))}%
-          </span>
-          <span style={{ opacity:.6, marginLeft:6, fontSize:12 }}>vs previous 7 days</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [daily, setDaily] = useState([]);
@@ -114,70 +87,90 @@ export default function Dashboard() {
 
   return (
     <Section title="Dashboard" subtitle="Overview at a glance">
-      <div className="page-card" style={{ padding: 16, borderRadius: 10, marginBottom: 12, display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+      <div className="toolbar">
+        <span className="badge">Live overview</span>
         <button type="button" className="btn outline btn-sm" onClick={loadAll}>Refresh</button>
-        <label style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <label className="checkbox">
           <input type="checkbox" checked={live} onChange={e => setLive(e.target.checked)} />
           Auto-refresh every 60s
         </label>
-        <div style={{ marginLeft:'auto', fontSize:12, opacity:.7 }}>
+        <div className="spacer" />
+        <div className="muted" style={{ fontSize: 13 }}>
           Tips: <Link to="/analytics">Analytics</Link> · <Link to="/reports">Reports</Link> · <Link to="/workflows">Workflows</Link>
         </div>
       </div>
 
-      {err && <div style={{color:'crimson', marginBottom:12}}>{err}</div>}
+      {err && <div className="alert" role="alert">{err}</div>}
 
       {!summary ? (
-        <div className="page-card" style={{ padding:16, borderRadius:10 }}>Loading…</div>
+        <div className="panel">Loading…</div>
       ) : (
         <>
           {/* Top stats */}
-          <div className="page-card" style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12 }}>
-            <Stat label="Workflows" value={summary.workflows} />
-            <Stat label="Tasks" value={summary.tasks_total} delta={delta7} />
-            <Stat label="Done" value={summary.tasks_done} />
-            <Stat label="Pending" value={summary.tasks_pending} />
+          <div className="card-grid stat-grid" style={{ marginTop: 14 }}>
+            <div className="stat-card accent">
+              <div className="stat-label">Workflows</div>
+              <div className="stat-value">{nf.format(summary.workflows || 0)}</div>
+              <div className="section-sub" style={{ color: '#e2e8f0' }}>Active automation playbooks</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Tasks</div>
+              <div className="stat-value">{nf.format(summary.tasks_total || 0)}</div>
+              <div className={`stat-delta ${delta7 > 0 ? 'positive' : delta7 < 0 ? 'negative' : ''}`}>
+                {delta7 > 0 ? '▲' : delta7 < 0 ? '▼' : '—'} {Math.round(Math.abs(delta7)) || 0}% vs last 7d
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Done</div>
+              <div className="stat-value">{nf.format(summary.tasks_done || 0)}</div>
+              <div className="section-sub">Completed successfully</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Pending</div>
+              <div className="stat-value">{nf.format(summary.tasks_pending || 0)}</div>
+              <div className="section-sub">Awaiting action</div>
+            </div>
           </div>
 
           {/* Trends + activity */}
-          <div className="page-card" style={{ marginTop:12, display:'grid', gridTemplateColumns:'2fr 1fr', gap:12 }}>
-            <div style={{ padding:16, border:'1px solid #eee', borderRadius:10 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div className="card-grid analytics-grid" style={{ marginTop: 14 }}>
+            <div className="panel">
+              <div className="panel-title">
                 <div>
-                  <div style={{ fontWeight:700 }}>Tasks created (30 days)</div>
-                  <div style={{ fontSize:12, opacity:.7 }}>
+                  <div>Tasks created (30 days)</div>
+                  <div className="section-sub">
                     Last 7: {nf.format(last7Sum)} · Prev 7: {nf.format(prev7Sum)}
                   </div>
                 </div>
-                <Link to="/analytics" style={{ fontSize:12 }}>Open analytics →</Link>
+                <Link to="/analytics" className="subtle-link">Open analytics →</Link>
               </div>
-              <div style={{ marginTop:10 }}>
+              <div className="spark-shell">
                 <Sparkline data={daily} />
               </div>
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:10, fontSize:12, opacity:.7 }}>
+              <div className="chips">
                 {daily.slice(-6).map(d => (
-                  <div key={d.date} style={{ border:'1px solid #eee', borderRadius:6, padding:'4px 8px' }}>
+                  <div key={d.date} className="chip">
                     {d.date.slice(5)}: {d.count}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div style={{ padding:16, border:'1px solid #eee', borderRadius:10 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <div style={{ fontWeight:700 }}>Recent activity</div>
-                <Link to="/notifications" style={{ fontSize:12 }}>View all →</Link>
+            <div className="panel">
+              <div className="panel-title">
+                <div>Recent activity</div>
+                <Link to="/notifications" className="subtle-link">View all →</Link>
               </div>
               {!activity.length ? (
-                <div style={{ marginTop:8, opacity:.7 }}>No activity yet</div>
+                <div className="section-sub" style={{ marginTop: 8 }}>No activity yet</div>
               ) : (
-                <ul style={{ listStyle:'none', padding:0, marginTop:8 }}>
+                <ul className="activity-list">
                   {activity.map(a => (
-                    <li key={a.id} style={{ padding:'6px 0', borderTop:'1px solid #f4f4f4' }}>
-                      <div style={{ fontWeight:600, fontSize:14 }}>{a.event}</div>
-                      <div style={{ fontSize:12, opacity:.7 }}>
-                        In <Link to={`/workflow/${a.workflow?.id}`}>{a.workflow?.name}</Link> • Task #{a.task?.id} • {a.status || '—'}
-                      </div>
+                    <li key={a.id} className="activity-item">
+                      <div style={{ fontWeight: 700 }}>{a.event}</div>
+                      <small>
+                        In <Link to={`/workflows/${a.workflow?.id ?? ''}`}>{a.workflow?.name}</Link> • Task #{a.task?.id} • {a.status || '—'}
+                      </small>
                     </li>
                   ))}
                 </ul>

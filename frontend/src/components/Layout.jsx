@@ -3,15 +3,15 @@ import { useAuth } from '../state/auth.jsx';
 import { useEffect, useMemo, useState } from 'react';
 
 const navItems = [
-  { to: '/',             label: 'Dashboard',        icon: '🏠' },
-  { to: '/workflows',     label: 'Workflow Config',  icon: '🛠️' },
-  { to: '/integrations', label: 'Integrations',     icon: '🔌' },
-  { to: '/reports',      label: 'Reports',          icon: '📊' },
-  { to: '/notifications',label: 'Notifications',    icon: '🔔' },
-  { to: '/tasks',        label: 'Task Management',  icon: '✅' },
-  { to: '/analytics',    label: 'Analytics',        icon: '📈' },
-  { to: '/logs',         label: 'Logs',             icon: '📜' },
-  { to: '/settings',     label: 'Settings',         icon: '⚙️' },
+  { to: '/',             label: 'Dashboard',        short: 'DB' },
+  { to: '/workflows',    label: 'Workflow Config',  short: 'WF' },
+  { to: '/integrations', label: 'Integrations',     short: 'IN' },
+  { to: '/reports',      label: 'Reports',          short: 'RP' },
+  { to: '/notifications',label: 'Notifications',    short: 'NT' },
+  { to: '/tasks',        label: 'Task Management',  short: 'TK' },
+  { to: '/analytics',    label: 'Analytics',        short: 'AN' },
+  { to: '/logs',         label: 'Logs',             short: 'LG' },
+  { to: '/settings',     label: 'Settings',         short: 'ST' },
 ];
 
 function initials(name = '') {
@@ -26,38 +26,45 @@ export default function Layout() {
   const location = useLocation();
 
   // sidebar state (show on desktop, toggle on mobile)
-  const [open, setOpen] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
+  const [open, setOpen] = useState(isDesktop);
 
   useEffect(() => {
-    // close sidebar after navigation on small screens
-    setOpen(window.matchMedia('(min-width: 960px)').matches);
-  }, [location.pathname]);
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = (e) => {
+      setIsDesktop(e.matches);
+      setOpen(e.matches);
+    };
+    mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', onChange) : mq.removeListener(onChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    setOpen(isDesktop);
+  }, [isDesktop, location.pathname]);
 
   const userInitials = useMemo(() => initials(user?.name), [user?.name]);
+  const currentNav = navItems.find(n => location.pathname === n.to || location.pathname.startsWith(`${n.to}/`));
 
   return (
-    <div className="app-shell" style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="app-shell">
       {/* Sidebar */}
       <aside
-        className={`sidebar${open ? ' open' : ''}`}
+        className={`sidebar${open ? ' open is-open' : ''}`}
         role="navigation"
         aria-label="Primary"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem' }}>
-          <div
-            aria-hidden
-            style={{
-              width: 36, height: 36, borderRadius: 8,
-              background: 'linear-gradient(135deg,#2563eb,#22d3ee)',
-              color:'#fff', fontWeight: 800, display:'grid', placeItems:'center'
-            }}
-          >
-            IW
+        <div className="logo">
+          <div className="logo-mark" aria-hidden>IW</div>
+          <div>
+            <div className="logo-text">IWAS</div>
+            <div className="logo-sub">Automation OS</div>
           </div>
-          <h2 style={{ fontSize: 18 }}>IWAS</h2>
         </div>
 
-        <nav>
+        <nav className="nav">
           {navItems.map((i) => (
             <NavLink
               key={i.to}
@@ -65,73 +72,59 @@ export default function Layout() {
               end={i.to === '/'}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
-              <span aria-hidden style={{ width: 22, display:'inline-block' }}>{i.icon}</span>
+              <span className="nav-icon" aria-hidden>{i.short}</span>
               {i.label}
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #eee' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div
-              aria-hidden
-              style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background:'#e8eefc', color:'#1e40af', fontWeight:700,
-                display:'grid', placeItems:'center'
-              }}
-              title={user?.name}
-            >
-              {userInitials}
-            </div>
-            <div style={{ fontSize: 13, lineHeight: 1.2 }}>
-              <div style={{ fontWeight: 600 }}>{user?.name || 'User'}</div>
-              <div style={{ opacity: .7 }}>{user?.email}</div>
-            </div>
+        <div className="sidebar-footer">
+          <div className="avatar" aria-hidden title={user?.name}>{userInitials}</div>
+          <div className="user-meta">
+            <div style={{ fontWeight: 700 }}>{user?.name || 'User'}</div>
+            <div className="muted">{user?.email}</div>
           </div>
         </div>
       </aside>
 
       {/* Main column */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <header className="header" style={{ position:'sticky', top:0, zIndex:10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+      <div className="content-shell">
+        <header className="topbar">
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setOpen(o => !o)}
+            aria-label="Toggle navigation"
+            aria-expanded={open}
+          >
+            ☰
+          </button>
+          <div className="crumbs">
+            <span className="eyebrow">Control center</span>
+            <div className="page-title">{currentNav?.label || 'IWAS'}</div>
+          </div>
+          <div className="topbar-actions">
+            <span className="badge">Secure session</span>
+            <div className="avatar" aria-hidden>{userInitials}</div>
             <button
               type="button"
-              className="btn-ghost" // uses your existing ghost style
-              onClick={() => setOpen(o => !o)}
-              aria-label="Toggle navigation"
-              aria-expanded={open}
+              className="btn outline danger btn-sm"
+              onClick={() => {
+                if (confirm('Log out?')) { logout(); navigate('/login'); }
+              }}
             >
-              ☰
+              Log out
             </button>
-            <div style={{ marginLeft: 6, fontWeight: 600 }}>
-              {navItems.find(n => location.pathname === n.to)?.label || 'IWAS'}
-            </div>
-            <div style={{ marginLeft: 'auto', display:'flex', alignItems:'center', gap: 8 }}>
-              <span style={{ fontSize: 13, opacity:.8 }}>
-                Logged in as <b>{user?.name}</b>
-              </span>
-              <button
-                type="button"
-                className="btn outline danger btn-sm"
-                onClick={() => {
-                  if (confirm('Log out?')) { logout(); navigate('/login'); }
-                }}
-              >
-                Log out
-              </button>
-            </div>
           </div>
         </header>
 
-        <main className="main" style={{ width:'100%', marginInline: 'auto' }}>
+        <main className="main">
           <Outlet />
         </main>
       </div>
 
       {/* Scrim for mobile */}
-      {open && (
+      {open && !isDesktop && (
         <button
           className="scrim"
           aria-label="Close navigation"

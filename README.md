@@ -17,6 +17,9 @@ The frontend in `frontend/src` is built with React, React Router, and an AuthPro
 Local development uses Docker Compose to start the full stack with one command.  
 Production relies on Kubernetes manifests in `infra/k8s`, defining deployments, services, secrets, config maps, and ingress routing so the system runs reliably in DigitalOcean Kubernetes.
 
+**Managed MySQL (DigitalOcean)**  
+Add the managed DB secret `infra/k8s/iwas-db-secret.yaml` (contains `DATABASE_URL` for the DO MySQL instance with SSL) and apply it before deploying the API: `kubectl apply -f infra/k8s/iwas-db-secret.yaml`. The API deployment pulls this secret via `envFrom`.
+
 ---
 
 ## **CI/CD Automation**

@@ -37,3 +37,5 @@ spec:
                 name: iwas-config
             - secretRef:
                 name: iwas-secret
+            - secretRef:
+                name: iwas-db-secret

@@ -2,8 +2,15 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: iwas-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - iwas-capstone.com
+        - www.iwas-capstone.com
+      secretName: iwas-capstone-tls
   rules:
     - host: iwas-capstone.com
       http:

@@ -5,3 +5,4 @@ metadata:
 data:
   FLASK_ENV: "production"
   CORS_ORIGINS: "http://localhost:5173,http://iwas-capstone.com,http://www.iwas-capstone.com,https://iwas-capstone.com,https://www.iwas-capstone.com,http://24.144.66.237"
+  JWT_COOKIE_SECURE: "true"

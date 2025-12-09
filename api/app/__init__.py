@@ -16,6 +16,12 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Allow both with/without trailing slashes to avoid 308 redirects on preflight
+    try:
+        app.url_map.strict_slashes = False
+    except Exception:
+        pass
+
     # extensions
     db.init_app(app)
     jwt.init_app(app)

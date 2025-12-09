@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 from ..extensions import db
-from ..models import User, Log, Task, Workflow
+from ..models import User, Log, Task, Workflow, ApiEvent
 
 logs_bp = Blueprint("logs", __name__)
 
@@ -79,3 +79,19 @@ def record():
     db.session.add(log)
     db.session.commit()
     return jsonify({"ok": True, "item": log.to_public()})
+
+
+@logs_bp.get("/errors")
+@jwt_required()
+def recent_errors():
+    """
+    Return recent API-level error events (5xx) captured globally.
+    """
+    u = _user()
+    if not u:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    limit = max(1, min(int(request.args.get("limit", 100)), 500))
+
+    q = ApiEvent.query.order_by(ApiEvent.id.desc()).limit(limit)
+    items = [e.to_public() for e in q.all()]
+    return jsonify({"ok": True, "items": items})

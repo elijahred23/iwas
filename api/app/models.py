@@ -219,6 +219,35 @@ class Integration(db.Model):
             "data": data,
         }
 
+
+class ApiEvent(db.Model):
+    """
+    Lightweight request-level error/event log for API responses (e.g., 5xx).
+    Does not require task/workflow context.
+    """
+    __tablename__ = "api_events"
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    path = db.Column(db.String(255))
+    method = db.Column(db.String(10))
+    status_code = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    error_message = db.Column(db.Text)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+
+    def to_public(self):
+        return {
+            "id": self.id,
+            "created_at": self.created_at.isoformat(sep=" ", timespec="seconds") if self.created_at else None,
+            "path": self.path,
+            "method": self.method,
+            "status_code": self.status_code,
+            "user": {"id": self.user.id, "email": self.user.email, "name": self.user.name} if self.user else None,
+            "error_message": self.error_message,
+        }
+
     def set_jira_credentials(self, *, domain: str, email: str, api_token: str,
         default_project: str | None = None,
         default_issue_type: str | None = None) -> None:

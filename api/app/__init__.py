@@ -9,7 +9,10 @@ from .integrations.jira import jira_bp
 from .analytics.routes import analytics_bp
 from .logs.routes import logs_bp
 from .tasks.routes import tasks_bp
-from .notifications.routes import notifications_bp  
+from .notifications.routes import notifications_bp
+from .models import ApiEvent
+from flask_jwt_extended import get_jwt_identity
+from werkzeug.exceptions import HTTPException
 
 
 def create_app():
@@ -61,6 +64,38 @@ def create_app():
         resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRF-Token, X-Requested-With"
         resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         return resp
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        """
+        Log 5xx responses to ApiEvent so they appear in activity/error logs.
+        """
+        status_code = 500
+        if isinstance(e, HTTPException):
+            status_code = e.code or 500
+
+        if status_code >= 500:
+            try:
+                uid = None
+                try:
+                    uid = int(get_jwt_identity())
+                except Exception:
+                    uid = None
+                evt = ApiEvent(
+                    path=request.path,
+                    method=request.method,
+                    status_code=status_code,
+                    user_id=uid,
+                    error_message=str(e)[:500],
+                )
+                db.session.add(evt)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+        if isinstance(e, HTTPException):
+            return e
+        return {"ok": False, "error": "Internal server error"}, status_code
 
 
     with app.app_context():

@@ -79,8 +79,6 @@ jobs:
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f infra/k8s/iwas-namespace.yaml
-          kubectl apply -f infra/k8s/iwas-config.yaml
-          kubectl apply -f infra/k8s/iwas-secret.yaml
 
           # API + Frontend
           kubectl apply -f infra/k8s/api-deployment.yaml

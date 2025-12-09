@@ -5,7 +5,8 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - http:
+    - host: iwas-capstone.com
+      http:
         paths:
           - path: /api
             pathType: Prefix
@@ -14,7 +15,23 @@ spec:
                 name: iwas-api
                 port:
                   number: 5050
-
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: iwas-frontend
+                port:
+                  number: 80
+    - host: www.iwas-capstone.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: iwas-api
+                port:
+                  number: 5050
           - path: /
             pathType: Prefix
             backend:

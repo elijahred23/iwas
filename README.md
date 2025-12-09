@@ -20,6 +20,9 @@ Production relies on Kubernetes manifests in `infra/k8s`, defining deployments, 
 **Managed MySQL (DigitalOcean)**  
 Add the managed DB secret `infra/k8s/iwas-db-secret.yaml` (contains `DATABASE_URL` for the DO MySQL instance with SSL) and apply it before deploying the API: `kubectl apply -f infra/k8s/iwas-db-secret.yaml`. The API deployment pulls this secret via `envFrom`.
 
+**Kubernetes DB note**  
+Kubernetes no longer deploys the bundled MySQL pod/service; the cluster relies on the managed DigitalOcean MySQL instance. Local development still uses Docker Compose for MySQL.
+
 ---
 
 ## **CI/CD Automation**

@@ -1,1 +1,5 @@
-Generic single-database configuration.
+Alembic migrations live here.
+
+- To create a new migration: `flask db migrate -m "message"` (with `FLASK_APP=app.main` set).
+- To apply migrations locally: `flask db upgrade`.
+- The production cluster runs against a managed MySQL instance; schema changes should ship via migrations to keep environments in sync.

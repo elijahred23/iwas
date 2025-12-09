@@ -10,7 +10,6 @@ services:
     environment:
       FLASK_ENV: development
       DATABASE_URL: mysql+pymysql://iwas:iwaspass@db:3306/iwas
-      JWT_SECRET_KEY: "dev-secret"
       INTEGRATION_KEY: "tO5vxRKqzH3X3-1WAwUD0tvqDij0xwEukbqlddEkSOA="
     ports:
       - "5050:5050"

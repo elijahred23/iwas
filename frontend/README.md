@@ -1,21 +1,21 @@
 # **IWAS – Intelligent Workflow Automation System**
 
-IWAS is a full-stack workflow automation platform built with a React/Vite frontend, a Flask API, and a fully automated DevOps pipeline powered by Docker, GitHub Actions, and DigitalOcean Kubernetes. The project cleanly separates the client, server, and infrastructure layers while keeping deployment and configuration consistent across environments.
+IWAS is a full-stack workflow automation platform built with a React/Vite frontend, a Flask API, and a fully automated DevOps pipeline powered by Docker, GitHub Actions, and DigitalOcean Kubernetes. The UI is responsive, light-themed, and ships integrations for Slack, GitHub, and Jira.
 
 ---
 
-## **Overview**
-
-The API lives in `api/app`, where `config.py` defines environment-specific settings and `extensions.py` initializes services such as SQLAlchemy, JWT authentication, and other shared components. The domain is modeled in `models.py`, which defines Users, Workflows, Tasks, Logs, and Integrations. Features are organized as Flask blueprints: authentication uses HttpOnly JWT cookies, workflows and tasks support CRUD operations with audit logging and Slack notifications, analytics exposes dashboard and activity data, and integration clients support Slack, GitHub, and Jira actions. Alembic migrations are tracked under `api/migrations`, and database schema and seeds are in `infra/db/sql`.
-
-The frontend in `frontend/src` is built with React, React Router, and an AuthProvider for state management. Axios wrappers in `lib/` unify all server communication, and UI components such as Layout, WorkflowSetup, TaskList, Analytics, Integrations, Notifications, and Settings form the core user interface. Styling is kept intentionally semantic for maintainability.
+## **Frontend overview**
+- React + Vite, React Router, and an AuthProvider for session/role gating.
+- Axios client in `src/lib/api.js` uses a same-origin `/api` base in production; set `VITE_API_URL` in `.env.*` to override.
+- Feature pages: Dashboard (analytics + activity), Workflows (CRUD + rules), Tasks, Reports, Integrations (Slack/GitHub/Jira), Notifications, Logs, Settings.
+- Styling/theme lives in `src/index.css`; layout shell in `src/components/Layout.jsx`.
 
 ---
 
 ## **Local and Production Environments**
 
-Local development uses Docker Compose to start the full stack with one command.  
-Production relies on Kubernetes manifests in `infra/k8s`, defining deployments, services, secrets, config maps, and ingress routing so the system runs reliably in DigitalOcean Kubernetes.
+- Local: `npm install` then `npm run dev` (defaults to `http://localhost:5173`). For a full stack, use `docker-compose` from repo root.
+- Prod: built via GitHub Actions, deployed to DigitalOcean Kubernetes with ingress + TLS. Managed MySQL handles automated backups.
 
 ---
 
@@ -28,6 +28,5 @@ The CI/CD pipeline in `.github/workflows/main.yml` automates building, testing, 
 ## **Summary**
 
 IWAS integrates full-stack development with modern DevOps practices. The project combines clean application architecture, declarative infrastructure, and continuous delivery so environments remain reproducible, configuration stays centralized, and deployments happen reliably on every commit.
-
 
 

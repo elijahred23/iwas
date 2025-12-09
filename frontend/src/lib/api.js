@@ -1,7 +1,12 @@
 import axios from "axios";
 
+// Prefer an explicit env override; otherwise default to same-origin /api
+const baseURL =
+  import.meta.env.VITE_API_URL?.trim() ||
+  `${window.location.origin.replace(/\/+$/, "")}/api`;
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL,
   withCredentials: true,
 });
 

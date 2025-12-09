@@ -82,10 +82,6 @@ jobs:
           kubectl apply -f infra/k8s/iwas-config.yaml
           kubectl apply -f infra/k8s/iwas-secret.yaml
 
-          # MySQL
-          kubectl apply -f infra/k8s/mysql-initdb-configmap.yaml
-          kubectl apply -f infra/k8s/mysql-deployment.yaml
-
           # API + Frontend
           kubectl apply -f infra/k8s/api-deployment.yaml
           kubectl apply -f infra/k8s/frontend-deployment.yaml

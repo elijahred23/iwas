@@ -94,6 +94,7 @@ def _apply_rules(task: Task, event: str = "updated", rules: list[WorkflowRule] |
 
 # ---------- workflows CRUD ----------
 
+@workflows_bp.get("")
 @workflows_bp.get("/")
 @jwt_required()
 def list_workflows():
@@ -130,6 +131,7 @@ def list_workflows():
     }), 200
 
 
+@workflows_bp.post("")
 @workflows_bp.post("/")
 @jwt_required()
 def create_workflow():
